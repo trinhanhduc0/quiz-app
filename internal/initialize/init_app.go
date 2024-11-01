@@ -1,12 +1,10 @@
 package initialize
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	entity "quiz-app/internal/domain/entities"
 	"quiz-app/internal/domain/service"
 	"quiz-app/internal/infrastructure/persistence/aws"
 	persistence "quiz-app/internal/infrastructure/persistence/mongodb"
@@ -23,15 +21,7 @@ var (
 func InitApp() {
 	//Init mongo
 	persistence.ConnectMongoDB(os.Getenv(persistence.MongoConnectionString))
-
-	userRepo := persistence.NewUserMongoRepository()
-
-	user, err := userRepo.GetUser(context.TODO(), &entity.User{
-		EmailID: "ZG1mwdlEFtRwxXRezbmgf6Ctij13",
-	})
-
-	fmt.Println(user, "ERROR: ", err)
-
+	//Init router
 	InitRouter()
 }
 func InitRouter() {
