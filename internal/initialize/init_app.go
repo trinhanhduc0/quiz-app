@@ -39,7 +39,6 @@ func InitRouter() {
 		fmt.Println("NOT RUN REDIS")
 	}
 	redisUseCase := service.NewRedisUseCase(redisRepo)
-	os.Getenv("JWT_SECRET")
 	//authService, err := service.NewAuthService("firebase-config.json", ([]byte)("jwt-secret"))
 
 	authService, err := service.NewAuthService("firebase-config.json", ([]byte)(os.Getenv("JWT_SECRET")))

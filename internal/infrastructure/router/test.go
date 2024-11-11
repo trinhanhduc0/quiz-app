@@ -4,14 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 	entity "quiz-app/internal/domain/entities"
 	"quiz-app/internal/domain/service"
 	"quiz-app/internal/pkg"
 	utils "quiz-app/internal/util"
 	"sort"
-	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -199,8 +197,6 @@ func (r *RoutesTest) getQuestionOfTest(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	fmt.Println(test)
-
 	cacheKeyTestInfo := fmt.Sprintf("test_info_%s", test.ID.Hex())
 	cacheKeyQuestions := fmt.Sprintf("questions_%s", test.ID.Hex())
 	cacheKeyDefaultQuestions := fmt.Sprintf("questions_default_%s", test.ID.Hex())
@@ -232,7 +228,16 @@ func (r *RoutesTest) getQuestionOfTest(w http.ResponseWriter, req *http.Request)
 		return
 	}
 	// Cache test info
-	cacheData(r.redisUseCase, req.Context(), cacheKeyTestInfo, testInfo)
+	var minutesDuration int
+	if val, ok := testInfo["duration_minutes"].(int64); ok {
+		minutesDuration = int(val)
+	} else {
+		fmt.Println("Fail to get testInfo['duration_minutes']")
+	}
+	// Convert minutesDuration directly to time.Duration
+	duration := time.Duration(minutesDuration+1) * time.Minute
+	fmt.Println(duration)
+	cacheData(r.redisUseCase, req.Context(), cacheKeyTestInfo, testInfo, duration)
 	// Delete allowed users for security and validate timing
 	delete(testInfo, "allowed_users")
 	if !isTestAccessible(testInfo) {
@@ -241,12 +246,12 @@ func (r *RoutesTest) getQuestionOfTest(w http.ResponseWriter, req *http.Request)
 	}
 
 	// Fetch questions and cache results
-	questions, err = r.questionUseCase.QuestionRepo.GetAllQuestions(req.Context(), questionIDs)
+	questions, err = r.questionUseCase.GetAllTestQuestions(req.Context(), questionIDs)
 	if err != nil {
 		pkg.SendError(w, "Failed to retrieve questions", http.StatusInternalServerError)
 		return
 	}
-	cacheData(r.redisUseCase, req.Context(), cacheKeyDefaultQuestions, questions)
+	cacheData(r.redisUseCase, req.Context(), cacheKeyDefaultQuestions, questions, duration)
 
 	// Generate final options and cache them
 	finalOptionMap := r.generateFinalOptionsMap(questions, test.ID.Hex())
@@ -255,12 +260,11 @@ func (r *RoutesTest) getQuestionOfTest(w http.ResponseWriter, req *http.Request)
 		pkg.SendError(w, "Failed to process questions", http.StatusInternalServerError)
 		return
 	}
-	r.redisUseCase.HSet(req.Context(), fmt.Sprintf("questions_id_%s", test.ID.Hex()), map[string]interface{}{"questions": questionsJSON})
+	r.redisUseCase.HSet(req.Context(), fmt.Sprintf("questions_id_%s", test.ID.Hex()), duration, map[string]interface{}{"questions": questionsJSON})
 
 	if testInfo["is_test"] == true {
-		fmt.Println("NO CACHE")
 		shuffledQuestions := pkg.ShuffleQuestionsAndAnswers(questions)
-		cacheData(r.redisUseCase, req.Context(), cacheKeyQuestions, shuffledQuestions)
+		cacheData(r.redisUseCase, req.Context(), cacheKeyQuestions, shuffledQuestions, duration)
 		if answer, err := r.answerUseCase.GetAnswer(req.Context(), primitive.M{"test_id": test.ID, "email_id": emailID}); err == nil && len(answer.ListQuestionAnswer) != 0 {
 			response := primitive.M{"answer": answer, "questions": questions}
 			fmt.Println(response)
@@ -353,75 +357,75 @@ func (r *RoutesTest) getQuestionID(question primitive.M) string {
 	return ""
 }
 
-// NewAnswerIdTest generates new ObjectIDs for each option in the questions
-// and stores question keys along with option keys in Redis.
-func (r *RoutesTest) newAnswerIdTest(ctx context.Context, questions []primitive.M, testKey string) ([]primitive.M, error) {
-	rand.Seed(time.Now().UnixNano())              // Initialize random seed
-	questionMap := make(map[string]interface{})   // Map to store question and option IDs
-	questionIdMap := make(map[string]interface{}) // Map to store question and option IDs
+// // NewAnswerIdTest generates new ObjectIDs for each option in the questions
+// // and stores question keys along with option keys in Redis.
+// func (r *RoutesTest) newAnswerIdTest(ctx context.Context, questions []primitive.M, testKey string) ([]primitive.M, error) {
+// 	rand.Seed(time.Now().UnixNano())              // Initialize random seed
+// 	questionMap := make(map[string]interface{})   // Map to store question and option IDs
+// 	questionIdMap := make(map[string]interface{}) // Map to store question and option IDs
 
-	// Iterate through each question
-	for _, question := range questions {
-		// Generate new ObjectID for the question
-		newQuestionID := primitive.NewObjectID().Hex()
-		var questionID string
-		if id, ok := question["_id"].(primitive.ObjectID); ok {
-			questionID = id.Hex() // Convert ObjectID to string
-		} else if idStr, ok := question["_id"].(string); ok {
-			questionID = idStr // Use it directly if it's already a string
-		} else {
-			fmt.Println("Error: _id is neither ObjectID nor string")
-			return nil, nil // Handle the error as needed, e.g., skip this question
-		}
+// 	// Iterate through each question
+// 	for _, question := range questions {
+// 		// Generate new ObjectID for the question
+// 		newQuestionID := primitive.NewObjectID().Hex()
+// 		var questionID string
+// 		if id, ok := question["_id"].(primitive.ObjectID); ok {
+// 			questionID = id.Hex() // Convert ObjectID to string
+// 		} else if idStr, ok := question["_id"].(string); ok {
+// 			questionID = idStr // Use it directly if it's already a string
+// 		} else {
+// 			fmt.Println("Error: _id is neither ObjectID nor string")
+// 			return nil, nil // Handle the error as needed, e.g., skip this question
+// 		}
 
-		// Now use questionID safely
-		questionIdMap[string(newQuestionID)] = questionID
-		question["_id"] = newQuestionID // Update the question in the slice
-		// Create a nested map for storing option IDs for this question
-		optionMap := make(map[string]string)
+// 		// Now use questionID safely
+// 		questionIdMap[string(newQuestionID)] = questionID
+// 		question["_id"] = newQuestionID // Update the question in the slice
+// 		// Create a nested map for storing option IDs for this question
+// 		optionMap := make(map[string]string)
 
-		switch question["type"] {
-		case "fill_in_the_blank":
-			if options, ok := question["fill_in_the_blank"].(primitive.A); ok {
-				for _, opt := range options {
-					if option, ok := opt.(map[string]interface{}); ok {
-						updateOptionID(option, optionMap) // Update option ID for fill_in_the_blank
-					}
-				}
-			}
-		default:
-			if options, ok := question["options"].(primitive.A); ok {
-				for _, opt := range options {
-					if option, ok := opt.(map[string]interface{}); ok {
-						updateOptionID(option, optionMap) // Update option ID for default case
-					}
-				}
-			}
-		}
+// 		switch question["type"] {
+// 		case "fill_in_the_blank":
+// 			if options, ok := question["fill_in_the_blank"].(primitive.A); ok {
+// 				for _, opt := range options {
+// 					if option, ok := opt.(map[string]interface{}); ok {
+// 						updateOptionID(option, optionMap) // Update option ID for fill_in_the_blank
+// 					}
+// 				}
+// 			}
+// 		default:
+// 			if options, ok := question["options"].(primitive.A); ok {
+// 				for _, opt := range options {
+// 					if option, ok := opt.(map[string]interface{}); ok {
+// 						updateOptionID(option, optionMap) // Update option ID for default case
+// 					}
+// 				}
+// 			}
+// 		}
 
-		// Encode the option map to JSON string
-		optionMapJSON, err := json.Marshal(optionMap)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal option map to JSON: %v", err)
-		}
+// 		// Encode the option map to JSON string
+// 		optionMapJSON, err := json.Marshal(optionMap)
+// 		if err != nil {
+// 			return nil, fmt.Errorf("failed to marshal option map to JSON: %v", err)
+// 		}
 
-		// Store the encoded option map in the question map using the new question ID as the key
-		questionMap[string(newQuestionID)] = string(optionMapJSON)
-	}
+// 		// Store the encoded option map in the question map using the new question ID as the key
+// 		questionMap[string(newQuestionID)] = string(optionMapJSON)
+// 	}
 
-	// Store the nested question and option maps in Redis under the provided test key
-	err := r.redisUseCase.HSet(ctx, testKey, questionMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to store question IDs in Redis: %v", err)
-	}
+// 	// Store the nested question and option maps in Redis under the provided test key
+// 	err := r.redisUseCase.HSet(ctx, testKey, duration, questionMap)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to store question IDs in Redis: %v", err)
+// 	}
 
-	err = r.redisUseCase.HSet(ctx, testKey+"_id", questionIdMap)
-	if err != nil {
-		return nil, fmt.Errorf("failed to store question IDs in Redis: %v", err)
-	}
+// 	err = r.redisUseCase.HSet(ctx, testKey+"_id", duration, questionIdMap)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to store question IDs in Redis: %v", err)
+// 	}
 
-	return questions, nil // Return modified questions
-}
+// 	return questions, nil // Return modified questions
+// }
 
 func updateOptionID(option map[string]interface{}, optionMap map[string]string) {
 	// Store the option ID with the old option ID as key
@@ -439,25 +443,14 @@ func updateOptionID(option map[string]interface{}, optionMap map[string]string) 
 	}
 }
 
-func cacheData(redisUseCase service.RedisUseCase, ctx context.Context, key string, data interface{}) {
+func cacheData(redisUseCase service.RedisUseCase, ctx context.Context, key string, data interface{}, time time.Duration) {
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println("Error marshaling data for caching:", err)
 		return
 	}
-	if err := redisUseCase.Set(ctx, key, dataJSON, time.Hour); err != nil {
+	if err := redisUseCase.Set(ctx, key, dataJSON, time); err != nil {
 		fmt.Println("Error caching data:", err)
-	}
-}
-
-func cacheQuestionIDs(redisUseCase service.RedisUseCase, ctx context.Context, key string, questionIDs []primitive.ObjectID) {
-	var questionIDStrings []string
-	for _, id := range questionIDs {
-		questionIDStrings = append(questionIDStrings, id.Hex())
-	}
-	questionIDsString := strings.Join(questionIDStrings, ",")
-	if err := redisUseCase.Set(ctx, key, questionIDsString, time.Hour); err != nil {
-		fmt.Println("Error caching question IDs:", err)
 	}
 }
 

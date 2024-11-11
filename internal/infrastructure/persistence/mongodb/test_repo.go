@@ -129,12 +129,9 @@ func (r *TestMongoRepository) GetQuestionOfTest(ctx context.Context, id primitiv
 			}
 			questionIDs = append(questionIDs, questionID)
 		}
-		fmt.Println(doc)
 		questionInfo = doc
 		delete(listQuestions[i].(bson.M), "question_ids")
 	}
-
-	fmt.Println("questionIDs, questionInfo", questionIDs, questionInfo)
 
 	return questionIDs, questionInfo, nil
 }

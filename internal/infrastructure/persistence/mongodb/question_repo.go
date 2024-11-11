@@ -57,37 +57,6 @@ func (r *QuestionMongoRepository) GetAllQuestions(ctx context.Context, questionI
 	return results, nil
 }
 
-func (r *QuestionMongoRepository) GetAllTests(ctx context.Context, questionIDs []primitive.ObjectID) ([]primitive.M, error) {
-	// Kiểm tra xem questionIDs có rỗng không
-	if len(questionIDs) == 0 {
-		return nil, fmt.Errorf("no question IDs provided")
-	}
-
-	// Sử dụng $in để lọc câu hỏi theo danh sách ObjectIDs
-	questionFilter := bson.M{"_id": bson.M{"$in": questionIDs}}
-
-	// Fetch all matching questions
-	questionList, err := r.CollRepo.GetAll(ctx, questionFilter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get questions from test with filter %v: %w", questionFilter, err)
-	}
-
-	// Chuyển đổi questionList sang []primitive.M
-	var results []primitive.M
-	for _, item := range questionList {
-		// Kiểm tra kiểu của item
-		if question, ok := item.(map[string]interface{}); ok {
-			// Chuyển đổi map[string]interface{} sang primitive.M
-			primitiveM := primitive.M(question) // ép kiểu
-			results = append(results, primitiveM)
-		} else {
-			return nil, fmt.Errorf("unexpected type in questionList: %T", item)
-		}
-	}
-
-	return results, nil
-}
-
 // CreateQuestion implements repository.QuestionRepository.CreateQuestion
 func (r *QuestionMongoRepository) CreateQuestion(ctx context.Context, question *entity.Question) (any, error) {
 	insertedID, err := r.CollRepo.Create(ctx, question)

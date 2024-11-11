@@ -44,8 +44,8 @@ func (uc *RedisUseCase) Exists(ctx context.Context, key string) (bool, error) {
 // List operations
 
 // LPush pushes values to the left of a list in Redis
-func (uc *RedisUseCase) LPush(ctx context.Context, key string, values ...interface{}) error {
-	return uc.RedisRepo.LPush(ctx, key, values...)
+func (uc *RedisUseCase) LPush(ctx context.Context, key string, expiration time.Duration, values ...interface{}) error {
+	return uc.RedisRepo.LPush(ctx, key, expiration, values...)
 }
 
 // RPop removes and retrieves the last element from a list in Redis
@@ -61,8 +61,8 @@ func (uc *RedisUseCase) LRange(ctx context.Context, key string, start, stop int6
 // Set operations
 
 // SAdd adds members to a set in Redis
-func (uc *RedisUseCase) SAdd(ctx context.Context, key string, members ...interface{}) error {
-	return uc.RedisRepo.SAdd(ctx, key, members...)
+func (uc *RedisUseCase) SAdd(ctx context.Context, key string, expiration time.Duration, members ...interface{}) error {
+	return uc.RedisRepo.SAdd(ctx, key, expiration, members...)
 }
 
 // SMembers retrieves all members of a set in Redis
@@ -73,8 +73,8 @@ func (uc *RedisUseCase) SMembers(ctx context.Context, key string) ([]string, err
 // Sorted Set operations
 
 // ZAdd adds elements with scores to a sorted set in Redis
-func (uc *RedisUseCase) ZAdd(ctx context.Context, key string, members ...redis.Z) error {
-	return uc.RedisRepo.ZAdd(ctx, key, members...)
+func (uc *RedisUseCase) ZAdd(ctx context.Context, key string, expiration time.Duration, members ...redis.Z) error {
+	return uc.RedisRepo.ZAdd(ctx, key, expiration, members...)
 }
 
 // ZRangeByScore retrieves elements from a sorted set by score range in Redis
@@ -85,8 +85,8 @@ func (uc *RedisUseCase) ZRangeByScore(ctx context.Context, key string, min, max 
 // Hash operations
 
 // HSet sets multiple fields in a hash in Redis
-func (uc *RedisUseCase) HSet(ctx context.Context, key string, values map[string]interface{}) error {
-	return uc.RedisRepo.HSet(ctx, key, values)
+func (uc *RedisUseCase) HSet(ctx context.Context, key string, expiration time.Duration, values map[string]interface{}) error {
+	return uc.RedisRepo.HSet(ctx, key, expiration, values)
 }
 
 // HGetAll retrieves all fields and values from a hash in Redis
@@ -97,8 +97,8 @@ func (uc *RedisUseCase) HGetAll(ctx context.Context, key string) (map[string]str
 // Geospatial operations
 
 // GeoAdd adds a geospatial location to a key in Redis
-func (uc *RedisUseCase) GeoAdd(ctx context.Context, key string, location *redis.GeoLocation) error {
-	return uc.RedisRepo.GeoAdd(ctx, key, location)
+func (uc *RedisUseCase) GeoAdd(ctx context.Context, key string, expiration time.Duration, location *redis.GeoLocation) error {
+	return uc.RedisRepo.GeoAdd(ctx, key, expiration, location)
 }
 
 // GeoPos retrieves the geospatial position of specified members from a key in Redis

@@ -16,23 +16,23 @@ type RedisRepository interface {
 	Close(ctx context.Context)
 
 	// List operations
-	LPush(ctx context.Context, key string, values ...interface{}) error
+	LPush(ctx context.Context, key string, expiration time.Duration, values ...interface{}) error
 	RPop(ctx context.Context, key string) (string, error)
 	LRange(ctx context.Context, key string, start, stop int64) ([]string, error)
 
 	// Set operations
-	SAdd(ctx context.Context, key string, members ...interface{}) error
+	SAdd(ctx context.Context, key string, expiration time.Duration, members ...interface{}) error
 	SMembers(ctx context.Context, key string) ([]string, error)
 
 	// Sorted Set operations
-	ZAdd(ctx context.Context, key string, members ...redis.Z) error
+	ZAdd(ctx context.Context, key string, expiration time.Duration, members ...redis.Z) error
 	ZRangeByScore(ctx context.Context, key string, min, max string) ([]string, error)
 
 	// Hash operations
-	HSet(ctx context.Context, key string, values map[string]interface{}) error
+	HSet(ctx context.Context, key string, expiration time.Duration, values map[string]interface{}) error
 	HGetAll(ctx context.Context, key string) (map[string]string, error)
 
 	// Geospatial operations
-	GeoAdd(ctx context.Context, key string, location ...*redis.GeoLocation) error
+	GeoAdd(ctx context.Context, key string, expiration time.Duration, location ...*redis.GeoLocation) error
 	GeoPos(ctx context.Context, key string, members ...string) ([]*redis.GeoPos, error)
 }

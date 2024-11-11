@@ -84,10 +84,13 @@ func (r *RedisClient) Close(ctx context.Context) {
 
 // List operations
 
-func (r *RedisClient) LPush(ctx context.Context, key string, values ...interface{}) error {
+func (r *RedisClient) LPush(ctx context.Context, key string, expiration time.Duration, values ...interface{}) error {
 	err := r.client.LPush(ctx, key, values...).Err()
 	if err != nil {
 		return fmt.Errorf("failed to push to list %s: %v", key, err)
+	}
+	if expiration > 0 {
+		r.client.Expire(ctx, key, expiration)
 	}
 	return nil
 }
@@ -112,10 +115,13 @@ func (r *RedisClient) LRange(ctx context.Context, key string, start, stop int64)
 
 // Set operations
 
-func (r *RedisClient) SAdd(ctx context.Context, key string, members ...interface{}) error {
+func (r *RedisClient) SAdd(ctx context.Context, key string, expiration time.Duration, members ...interface{}) error {
 	err := r.client.SAdd(ctx, key, members...).Err()
 	if err != nil {
 		return fmt.Errorf("failed to add to set %s: %v", key, err)
+	}
+	if expiration > 0 {
+		r.client.Expire(ctx, key, expiration)
 	}
 	return nil
 }
@@ -130,10 +136,13 @@ func (r *RedisClient) SMembers(ctx context.Context, key string) ([]string, error
 
 // Sorted Set operations
 
-func (r *RedisClient) ZAdd(ctx context.Context, key string, members ...redis.Z) error {
+func (r *RedisClient) ZAdd(ctx context.Context, key string, expiration time.Duration, members ...redis.Z) error {
 	err := r.client.ZAdd(ctx, key, members...).Err()
 	if err != nil {
 		return fmt.Errorf("failed to add to sorted set %s: %v", key, err)
+	}
+	if expiration > 0 {
+		r.client.Expire(ctx, key, expiration)
 	}
 	return nil
 }
@@ -151,10 +160,13 @@ func (r *RedisClient) ZRangeByScore(ctx context.Context, key, min, max string) (
 
 // Hash operations
 
-func (r *RedisClient) HSet(ctx context.Context, key string, fields map[string]interface{}) error {
+func (r *RedisClient) HSet(ctx context.Context, key string, expiration time.Duration, fields map[string]interface{}) error {
 	err := r.client.HMSet(ctx, key, fields).Err()
 	if err != nil {
 		return fmt.Errorf("failed to set hash %s: %v", key, err)
+	}
+	if expiration > 0 {
+		r.client.Expire(ctx, key, expiration)
 	}
 	return nil
 }
@@ -169,10 +181,13 @@ func (r *RedisClient) HGetAll(ctx context.Context, key string) (map[string]strin
 
 // Geospatial operations
 
-func (r *RedisClient) GeoAdd(ctx context.Context, key string, locations ...*redis.GeoLocation) error {
+func (r *RedisClient) GeoAdd(ctx context.Context, key string, expiration time.Duration, locations ...*redis.GeoLocation) error {
 	err := r.client.GeoAdd(ctx, key, locations...).Err()
 	if err != nil {
 		return fmt.Errorf("failed to add to geo %s: %v", key, err)
+	}
+	if expiration > 0 {
+		r.client.Expire(ctx, key, expiration)
 	}
 	return nil
 }
