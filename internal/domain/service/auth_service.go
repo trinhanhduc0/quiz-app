@@ -167,6 +167,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
 	entity "quiz-app/internal/domain/entities"
 	"time"
 
@@ -182,8 +183,8 @@ type AuthService struct {
 }
 
 func NewAuthService(firebaseConfigFile string, jwtSecret []byte) (*AuthService, error) {
-	// jsonString := os.Getenv("FIREBASE_CONFIG")
-	// opt := option.WithCredentialsJSON([]byte(jsonString))
+	jsonString := os.Getenv("FIREBASE_CONFIG")
+	opt := option.WithCredentialsJSON([]byte(jsonString))
 
 	//opt := option.WithCredentialsFile(firebaseConfigFile)
 	app, err := firebase.NewApp(context.Background(), nil, opt)
