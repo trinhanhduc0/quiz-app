@@ -27,7 +27,7 @@ func InitApp() {
 func InitRouter() {
 	// Initialize CORS
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "https://quiz-app-reactjs-n02s3gcs4-trinhanhduc0s-projects.vercel.app"},
+		AllowedOrigins:   []string{"http://localhost:5173", "quiz-app-reactjs-inky.vercel.app"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
