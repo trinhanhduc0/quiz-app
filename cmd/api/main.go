@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"os"
 	"quiz-app/internal/initialize"
 
 	"github.com/joho/godotenv"
