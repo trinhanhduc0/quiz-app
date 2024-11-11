@@ -2,8 +2,6 @@ package main
 
 import (
 	"quiz-app/internal/initialize"
-
-	"github.com/joho/godotenv"
 )
 
 func LoadConfig() bool {
