@@ -15,8 +15,9 @@ type TestRepository interface {
 	DeleteTest(ctx context.Context, id primitive.ObjectID, email string) error
 	GetAllTestOfClass(ctx context.Context, email string, id []primitive.ObjectID) ([]any, error)
 	GetQuestionOfTest(ctx context.Context, id primitive.ObjectID, email string) ([]primitive.ObjectID, bson.M, error)
-
+	
 	UpdateAllowUser(ctx context.Context, id []primitive.ObjectID, allowedUser []string) error
+	AddAllowedUser(ctx context.Context, ids []primitive.ObjectID, user string) error
 	UpdateAnswerUser(ctx context.Context, testID primitive.ObjectID, email string) error
 	RemoveAllowUser(ctx context.Context, testID primitive.ObjectID, email string) error
 }

@@ -47,6 +47,10 @@ func (cuc *TestUseCase) UpdateAnswerUser(ctx context.Context, testID primitive.O
 	return cuc.TestRepo.UpdateAnswerUser(ctx, testID, email)
 }
 
+func (cuc *TestUseCase) AddAllowedUser(ctx context.Context, ids []primitive.ObjectID, user string) error {
+	return cuc.TestRepo.AddAllowedUser(ctx, ids, user)
+}
+
 func (cuc *TestUseCase) UpdateAllowUser(ctx context.Context, id []primitive.ObjectID, allowedUser []string) error {
 	return cuc.TestRepo.UpdateAllowUser(ctx, id, allowedUser)
 }

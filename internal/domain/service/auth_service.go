@@ -186,7 +186,7 @@ func NewAuthService(firebaseConfigFile string, jwtSecret []byte) (*AuthService, 
 	jsonString := os.Getenv("FIREBASE_CONFIG")
 	opt := option.WithCredentialsJSON([]byte(jsonString))
 
-	//opt := option.WithCredentialsFile(firebaseConfigFile)
+	// opt := option.WithCredentialsFile(firebaseConfigFile)
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
 		return nil, err

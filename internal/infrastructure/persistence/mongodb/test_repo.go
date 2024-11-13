@@ -163,6 +163,7 @@ func (r *TestMongoRepository) GetAllTestOfClass(ctx context.Context, email strin
 
 	return classes, nil
 }
+
 func (r *TestMongoRepository) UpdateAllowUser(ctx context.Context, ids []primitive.ObjectID, allowedUsers []string) error {
 	// Define the filter to match documents by the provided ids
 	filter := bson.M{"_id": bson.M{"$in": ids}}
@@ -179,6 +180,27 @@ func (r *TestMongoRepository) UpdateAllowUser(ctx context.Context, ids []primiti
 	result, err := r.CollRepo.UpdateMany(ctx, filter, update)
 	if err != nil {
 		return fmt.Errorf("failed to update allowed users: %v", err)
+	}
+
+	fmt.Printf("Matched %d documents and modified %d documents.\n", result.MatchedCount, result.ModifiedCount)
+	return nil
+}
+
+func (r *TestMongoRepository) AddAllowedUser(ctx context.Context, ids []primitive.ObjectID, user string) error {
+	// Define the filter to match the document by the provided id
+	filter := bson.M{"_id": bson.M{"$in": ids}}
+
+	// Define the update to add the user to the allowed_users array if not already present
+	update := bson.M{
+		"$addToSet": bson.M{
+			"allowed_users": user,
+		},
+	}
+
+	// Perform the update operation
+	result, err := r.CollRepo.UpdateMany(ctx, filter, update)
+	if err != nil {
+		return fmt.Errorf("failed to add allowed user: %v", err)
 	}
 
 	fmt.Printf("Matched %d documents and modified %d documents.\n", result.MatchedCount, result.ModifiedCount)

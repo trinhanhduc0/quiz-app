@@ -66,6 +66,11 @@ func (cuc *ClassUseCase) GetAllClass(ctx context.Context, id string) ([]any, err
 	return cuc.repoClass.GetClassByAuthorEmail(context.TODO(), id)
 }
 
-func (cuc *ClassUseCase) JoinClass(ctx context.Context, classID primitive.ObjectID, email string) error {
+func (cuc *ClassUseCase) JoinClass(ctx context.Context, classID primitive.ObjectID, testID []primitive.ObjectID, email_author, email string) error {
+	err := cuc.repoTest.AddAllowedUser(context.TODO(), testID, email)
+	if err != nil {
+		// Log the error and return it
+		fmt.Printf("Error updating allowed users for test %v: %v\n", classID, err)
+	}
 	return cuc.repoClass.JoinClass(ctx, classID, email)
 }

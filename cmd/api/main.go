@@ -8,6 +8,8 @@ func LoadConfig() bool {
 	// // Không cần dòng này khi triển khai trên Fly.io
 	// err := godotenv.Load(".env")
 	// if err != nil {
+	// 	return false
+	// }
 
 	// 	port := os.Getenv("PORT")
 	// 	appEnv := os.Getenv("APP_ENV")

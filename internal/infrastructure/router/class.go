@@ -137,8 +137,6 @@ func (rc routerClass) deleteClass(w http.ResponseWriter, req *http.Request) {
 
 	pkg.SendResponse(w, http.StatusOK, fmt.Sprintf("Class with ID %v deleted", classDelete.ID))
 }
-
-// Join a class
 func (rc routerClass) joinClass(w http.ResponseWriter, req *http.Request) {
 	email := req.Context().Value("email").(string)
 
@@ -150,29 +148,54 @@ func (rc routerClass) joinClass(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Get class ID from Redis
-	sClassId, err := rc.redisUseCase.Get(req.Context(), class.ID)
+	// Lấy dữ liệu từ Redis
+	dataJSON, err := rc.redisUseCase.Get(req.Context(), class.ID)
 	if err != nil {
 		pkg.SendError(w, "Error fetching class from Redis", http.StatusInternalServerError)
 		return
 	}
 
-	// Convert the class ID from string to ObjectID
-	oClassId, err := primitive.ObjectIDFromHex(sClassId)
+	// Định nghĩa cấu trúc để giải mã dữ liệu JSON từ Redis
+	var data struct {
+		ClassID     string   `json:"class_id"`
+		EmailAuthor string   `json:"email"`
+		TestID      []string `json:"test_id"`
+	}
+
+	// Giải mã dữ liệu JSON
+	err = json.Unmarshal([]byte(dataJSON), &data)
+	if err != nil {
+		pkg.SendError(w, "Error decoding class data", http.StatusInternalServerError)
+		return
+	}
+
+	// Chuyển đổi class ID từ chuỗi sang ObjectID
+	oClassId, err := primitive.ObjectIDFromHex(data.ClassID)
 	if err != nil {
 		pkg.SendError(w, "Invalid class ID", http.StatusBadRequest)
 		return
 	}
+	var oTestId []primitive.ObjectID
+	for _, v := range data.TestID {
+		// Chuyển đổi từng chuỗi testID sang ObjectID
+		testID, err := primitive.ObjectIDFromHex(v)
+		if err != nil {
+			pkg.SendError(w, "Invalid test ID", http.StatusBadRequest)
+			return
+		}
+		// Thêm ObjectID đã chuyển đổi vào slice oTestId
+		oTestId = append(oTestId, testID)
+	}
 
-	// Join the class
-	err = rc.classUseCase.JoinClass(context.TODO(), oClassId, email)
+	// Thêm user vào lớp học
+	err = rc.classUseCase.JoinClass(context.TODO(), oClassId, oTestId, data.EmailAuthor, email)
 	if err != nil {
 		fmt.Println(err)
 		pkg.SendError(w, "Error joining class", http.StatusInternalServerError)
 		return
 	}
 
-	// Send success response
+	// Trả về phản hồi thành công
 	response := map[string]interface{}{
 		"success": true,
 		"message": fmt.Sprintf("Successfully joined class: %s", class.ID),
@@ -190,29 +213,54 @@ func generateRandomKey() (string, error) {
 }
 
 func (rc routerClass) createCodeClass(w http.ResponseWriter, req *http.Request) {
+	email := req.Context().Value("email").(string)
+
 	var classID struct {
-		ID     string `json:"_id"`
-		Minute int    `json:"minute"`
+		ID     string   `json:"_id"`
+		Minute int      `json:"minute"`
+		TestID []string `json:"test_id"`
 	}
-	fmt.Println(classID)
+
 	if err := json.NewDecoder(req.Body).Decode(&classID); err != nil {
 		pkg.SendError(w, "Invalid request data", http.StatusBadRequest)
 		return
 	}
-	// Generate a random key
+	fmt.Println(classID)
+	// Tạo một khóa ngẫu nhiên
 	randomKey, err := generateRandomKey()
 	if err != nil {
 		pkg.SendError(w, "Failed to generate random key", http.StatusInternalServerError)
 		return
 	}
-	// Store the classID.ID in Redis with the random key and expiration time
-	err = rc.redisUseCase.Set(req.Context(), randomKey, classID.ID, time.Minute*time.Duration(classID.Minute))
+
+	data := struct {
+		ClassID string   `json:"class_id"`
+		Email   string   `json:"email"`
+		TestID  []string `json:"test_id"` // Chuyển ObjectID sang dạng chuỗi
+	}{
+		ClassID: classID.ID,
+		Email:   email,
+		TestID:  classID.TestID,
+	}
+
+	// Mã hóa dữ liệu thành JSON
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		pkg.SendError(w, "Failed to encode data", http.StatusInternalServerError)
+		return
+	}
+
+	// Lưu JSON vào Redis với khóa ngẫu nhiên và thời gian hết hạn
+	err = rc.redisUseCase.Set(req.Context(), randomKey, string(dataJSON), time.Minute*time.Duration(classID.Minute))
 	if err != nil {
 		pkg.SendError(w, "Failed to store data in Redis", http.StatusInternalServerError)
 		return
 	}
+
+	// In ra giá trị để kiểm tra
 	fmt.Println(rc.redisUseCase.Get(req.Context(), randomKey))
-	// Return the random key as a response
+
+	// Trả về khóa ngẫu nhiên làm phản hồi
 	pkg.SendResponse(w, http.StatusOK, randomKey)
 }
 
