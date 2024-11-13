@@ -20,14 +20,16 @@ type RoutesAuth struct {
 	authService  service.AuthService
 	userUsecase  service.UserUseCase
 	redisUseCase service.RedisUseCase
+	classUseCase service.ClassUseCase
 }
 
-func NewRoutesAuth(r *Router, authService service.AuthService, userUsecase service.UserUseCase, redisUseCase service.RedisUseCase) *RoutesAuth {
+func NewRoutesAuth(r *Router, authService service.AuthService, userUsecase service.UserUseCase, redisUseCase service.RedisUseCase, classUseCase service.ClassUseCase) *RoutesAuth {
 	return &RoutesAuth{
 		router:       r,
 		authService:  authService,
 		userUsecase:  userUsecase,
 		redisUseCase: redisUseCase,
+		classUseCase: classUseCase,
 	}
 }
 
@@ -77,6 +79,18 @@ func (ra *RoutesAuth) loginHandler(w http.ResponseWriter, r *http.Request) {
 		userID, err = ra.userUsecase.CreateUser(ctx, user)
 		if err != nil {
 			http.Error(w, "Failed to create user", http.StatusInternalServerError)
+			return
+		}
+
+		//CLASS TEST//
+		classID, errClassTest := primitive.ObjectIDFromHex("672f248dd390f6125a29cadd")
+		if errClassTest != nil {
+			fmt.Println(errClassTest)
+			return
+		}
+		err = ra.classUseCase.JoinClass(context.TODO(), classID, user.Email)
+		if err != nil {
+			fmt.Println(err)
 			return
 		}
 	} else {
