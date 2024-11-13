@@ -65,7 +65,7 @@ func InitRouter() {
 
 	awsS3UseCase := aws.NewFileAWSRepository("quiz-app-image-storage", "ap-southeast-2")
 
-	routes.NewRoutesAuth(router, *authService, *userUseCase, *redisUseCase).SetLoginRoute()
+	routes.NewRoutesAuth(router, *authService, *userUseCase, *redisUseCase, *classUseCase).SetLoginRoute()
 	routes.NewRouterTest(*testUseCase, *classUseCase, *questionUseCase, *answerUseCase, *redisUseCase, *authHandler).GetTestRouter(router)
 	routes.NewRouterQuestion(*questionUseCase, *authHandler).GetQuestionRouter(router)
 	routes.NewRouterClass(*classUseCase, *redisUseCase, *authHandler).GetClassRouter(router)
