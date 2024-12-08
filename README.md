@@ -1,49 +1,16 @@
-# Project QUIZ APP 
+# Dự án QUIZ APP 
 
-One Paragraph of project description goes here
-
-## Getting Started
-
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
-## MakeFile
-
-run all make commands with clean tests
-```bash
-make all build
-```
-
-build the application
-```bash
-make build
-```
-
-run the application
-```bash
-make run
-```
-
-Create DB container
-```bash
-make docker-run
-```
-
-Shutdown DB container
-```bash
-make docker-down
-```
-
-live reload the application
-```bash
-make watch
-```
-
-run the test suite
-```bash
-make test
-```
-
-clean up binary from the last build
-```bash
-make clean
-```
+Các chức năng chính
+- Quản lý câu hỏi
+  + Bao gồm các nhiều câu hỏi: Single choice, Multi choice, Match choice, Order choice, Fill choice
+- Quản lý bài kiểm tra, ôn tập
+  + Bao gồm nhiều câu hỏi và set thời gian cho bài kiểm tra hoặc ôn tập
+  + Hiệu chỉnh thời gian, trộn lẫn câu hỏi và đáp án
+- Quản lý lớp học
+  + Thêm các ôn tập hoặc kiểm tra
+  + Quản lý thành viên
+  + Hiệu chỉnh lớp học cộng đồng hoặc lớp học riêng tư
+  + Tạo mã để mời thanh viên tham gia lớp
+- Ôn tập và làm bài kiểm tra
+  + Lấy danh sách câu hỏi
+  + Chấm điểm và lưu lại đối với bài kiểm tra
