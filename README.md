@@ -14,3 +14,6 @@ Các chức năng chính
 - Ôn tập và làm bài kiểm tra
   + Lấy danh sách câu hỏi
   + Chấm điểm và lưu lại đối với bài kiểm tra
+ 
+  RUN APP in terminal
+  make run
