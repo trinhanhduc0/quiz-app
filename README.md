@@ -16,4 +16,4 @@ Các chức năng chính
   + Chấm điểm và lưu lại đối với bài kiểm tra
  
   RUN APP in terminal
-  make run
+  - make run
