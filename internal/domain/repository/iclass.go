@@ -14,5 +14,7 @@ type ClassRepository interface {
 	DeleteClass(ctx context.Context, emailID string, id primitive.ObjectID) error
 	GetAllClassByEmail(ctx context.Context, email string) ([]any, error)
 	JoinClass(ctx context.Context, classID primitive.ObjectID, email string) error
-	
+
+	GetAllTestOfClass(ctx context.Context, email string, id primitive.ObjectID) ([]any, error)
+	GetQuestionOfTest(ctx context.Context, class, id primitive.ObjectID, email string) ([]primitive.ObjectID, primitive.M, error)
 }

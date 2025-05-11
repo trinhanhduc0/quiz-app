@@ -28,7 +28,6 @@ func (r *AnswerMongoRepository) CreateAnswer(ctx context.Context, answer entity.
 	if err != nil {
 		return nil, err
 	}
-
 	objID, ok := insertedID.(primitive.ObjectID)
 	if !ok {
 		return nil, errors.New("failed to convert inserted ID to ObjectID")

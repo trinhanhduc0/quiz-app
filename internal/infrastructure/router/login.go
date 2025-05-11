@@ -9,7 +9,6 @@ import (
 	"net/http"
 	entity "quiz-app/internal/domain/entities"
 	"quiz-app/internal/domain/service"
-	"quiz-app/internal/pkg"
 	"strings"
 	"time"
 
@@ -21,7 +20,6 @@ type RoutesAuth struct {
 	authService  service.AuthService
 	userUsecase  service.UserUseCase
 	redisUseCase service.RedisUseCase
-	classUseCase service.ClassUseCase
 }
 
 func NewRoutesAuth(r *Router, authService service.AuthService, userUsecase service.UserUseCase, redisUseCase service.RedisUseCase, classUseCase service.ClassUseCase) *RoutesAuth {
@@ -30,7 +28,6 @@ func NewRoutesAuth(r *Router, authService service.AuthService, userUsecase servi
 		authService:  authService,
 		userUsecase:  userUsecase,
 		redisUseCase: redisUseCase,
-		classUseCase: classUseCase,
 	}
 }
 
@@ -43,7 +40,6 @@ func (ra *RoutesAuth) loginHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
-
 	if req.Token == "" {
 		http.Error(w, "Missing token parameter", http.StatusBadRequest)
 		return
@@ -82,55 +78,6 @@ func (ra *RoutesAuth) loginHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to create user", http.StatusInternalServerError)
 			return
 		}
-
-		// CLASS TEST-----------------------------------------------------------------------------
-		// Lấy dữ liệu từ Redis
-		dataJSON, err := ra.redisUseCase.Get(r.Context(), "93d433c9be")
-		if err != nil {
-			pkg.SendError(w, "Error fetching class from Redis", http.StatusInternalServerError)
-			return
-		}
-
-		// Định nghĩa cấu trúc để giải mã dữ liệu JSON từ Redis
-		var data struct {
-			ClassID     string   `json:"class_id"`
-			EmailAuthor string   `json:"email"`
-			TestID      []string `json:"test_id"`
-		}
-
-		// Giải mã dữ liệu JSON
-		err = json.Unmarshal([]byte(dataJSON), &data)
-		if err != nil {
-			pkg.SendError(w, "Error decoding class data", http.StatusInternalServerError)
-			return
-		}
-
-		// Chuyển đổi class ID từ chuỗi sang ObjectID
-		oClassId, err := primitive.ObjectIDFromHex(data.ClassID)
-		if err != nil {
-			pkg.SendError(w, "Invalid class ID", http.StatusBadRequest)
-			return
-		}
-		var oTestId []primitive.ObjectID
-		for _, v := range data.TestID {
-			// Chuyển đổi từng chuỗi testID sang ObjectID
-			testID, err := primitive.ObjectIDFromHex(v)
-			if err != nil {
-				pkg.SendError(w, "Invalid test ID", http.StatusBadRequest)
-				return
-			}
-			// Thêm ObjectID đã chuyển đổi vào slice oTestId
-			oTestId = append(oTestId, testID)
-		}
-
-		// Thêm user vào lớp học
-		err = ra.classUseCase.JoinClass(context.TODO(), oClassId, oTestId, data.EmailAuthor, emailUser)
-		if err != nil {
-			fmt.Println(err)
-			pkg.SendError(w, "Error joining class", http.StatusInternalServerError)
-			return
-		}
-
 	} else {
 		// Use existing user ID
 		userID = userRow.ID
@@ -151,7 +98,7 @@ func (ra *RoutesAuth) loginHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to store token in Redis", http.StatusInternalServerError)
 		return
 	}
-
+	fmt.Println(ra.redisUseCase.Get(ctx, fmt.Sprintf("user_token:%s", emailID)))
 	// Send JWT token in response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"token": token})

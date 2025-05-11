@@ -14,6 +14,8 @@ type RedisRepository interface {
 	Delete(ctx context.Context, key string) error
 	Exists(ctx context.Context, key string) (bool, error)
 	Close(ctx context.Context)
+	Lock(ctx context.Context, key string) error
+	Unlock(ctx context.Context, key string)
 
 	// List operations
 	LPush(ctx context.Context, key string, expiration time.Duration, values ...interface{}) error

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+
 	entity "quiz-app/internal/domain/entities"
 	"quiz-app/internal/domain/repository"
 
@@ -15,62 +16,45 @@ type ClassUseCase struct {
 }
 
 func NewClassUseCase(repoClass repository.ClassRepository, repoTest repository.TestRepository) *ClassUseCase {
-	return &ClassUseCase{repoClass: repoClass, repoTest: repoTest}
+	return &ClassUseCase{
+		repoClass: repoClass,
+		repoTest:  repoTest,
+	}
 }
 
-func (cuc *ClassUseCase) CreateClass(class *entity.Class) (any, error) {
-	// Step 1: Create class in the database
-	newID, err := cuc.repoClass.CreateClass(context.TODO(), class)
+func (uc *ClassUseCase) CreateClass(ctx context.Context, class *entity.Class) (any, error) {
+	newID, err := uc.repoClass.CreateClass(ctx, class)
 	if err != nil {
-		// Log the error and return it
-		fmt.Printf("Error creating class: %v\n", err)
-		return nil, fmt.Errorf("failed to create class: %w", err)
+		return nil, fmt.Errorf("create class: %w", err)
 	}
 
-	// Set the new class ID
 	class.ID = newID
-
-	// Step 2: Update allowed users for the associated test
-	err = cuc.repoTest.UpdateAllowUser(context.TODO(), class.TestID, class.StudentAccept)
-	if err != nil {
-		// Log the error and return it
-		fmt.Printf("Error updating allowed users for test %v: %v\n", class.TestID, err)
-		return nil, fmt.Errorf("failed to update allowed users for test %v: %w", class.TestID, err)
-	}
-
-	// If everything succeeds, return the class
 	return class, nil
 }
 
-func (cuc *ClassUseCase) GetAllClassByEmail(ctx context.Context, email string) ([]any, error) {
-	return cuc.repoClass.GetAllClassByEmail(context.TODO(), email)
+func (uc *ClassUseCase) GetAllClassByEmail(ctx context.Context, email string) ([]any, error) {
+	return uc.repoClass.GetAllClassByEmail(ctx, email)
 }
 
-func (cuc *ClassUseCase) UpdateClass(ctx context.Context, class *entity.Class) (any, error) {
-	// Step 2: Update allowed users for the associated test
-	err := cuc.repoTest.UpdateAllowUser(context.TODO(), class.TestID, class.StudentAccept)
-	if err != nil {
-		// Log the error and return it
-		fmt.Printf("Error updating allowed users for test %v: %v\n", class.TestID, err)
-		return nil, fmt.Errorf("failed to update allowed users for test %v: %w", class.TestID, err)
-	}
-
-	return cuc.repoClass.UpdateClass(context.TODO(), class)
+func (uc *ClassUseCase) UpdateClass(ctx context.Context, class *entity.Class) (any, error) {
+	return uc.repoClass.UpdateClass(ctx, class)
 }
 
-func (cuc *ClassUseCase) DeleteClass(ctx context.Context, emailID string, id primitive.ObjectID) error {
-	return cuc.repoClass.DeleteClass(context.TODO(), emailID, id)
+func (uc *ClassUseCase) DeleteClass(ctx context.Context, emailID string, id primitive.ObjectID) error {
+	return uc.repoClass.DeleteClass(ctx, emailID, id)
 }
 
-func (cuc *ClassUseCase) GetAllClass(ctx context.Context, id string) ([]any, error) {
-	return cuc.repoClass.GetClassByAuthorEmail(context.TODO(), id)
+func (uc *ClassUseCase) GetAllClass(ctx context.Context, authorEmail string) ([]any, error) {
+	return uc.repoClass.GetClassByAuthorEmail(ctx, authorEmail)
 }
 
-func (cuc *ClassUseCase) JoinClass(ctx context.Context, classID primitive.ObjectID, testID []primitive.ObjectID, email_author, email string) error {
-	err := cuc.repoTest.AddAllowedUser(context.TODO(), testID, email)
-	if err != nil {
-		// Log the error and return it
-		fmt.Printf("Error updating allowed users for test %v: %v\n", classID, err)
-	}
-	return cuc.repoClass.JoinClass(ctx, classID, email)
+func (uc *ClassUseCase) JoinClass(ctx context.Context, classID primitive.ObjectID, testIDs []primitive.ObjectID, emailAuthor, studentEmail string) error {
+
+	return uc.repoClass.JoinClass(ctx, classID, studentEmail)
+}
+func (uc *ClassUseCase) GetAllTestOfClass(ctx context.Context, email string, id primitive.ObjectID) ([]any, error) {
+	return uc.repoClass.GetAllTestOfClass(ctx, email, id)
+}
+func (uc *ClassUseCase) GetQuestionOfTest(ctx context.Context, classId, testId primitive.ObjectID, email string) ([]primitive.ObjectID, primitive.M, error) {
+	return uc.repoClass.GetQuestionOfTest(ctx, classId, testId, email)
 }

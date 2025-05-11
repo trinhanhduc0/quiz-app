@@ -2,14 +2,16 @@ package main
 
 import (
 	"quiz-app/internal/initialize"
+
+	"github.com/joho/godotenv"
 )
 
 func LoadConfig() bool {
 	// // Không cần dòng này khi triển khai trên Fly.io
-	// err := godotenv.Load(".env")
-	// if err != nil {
-	// 	return false
-	// }
+	err := godotenv.Load(".env")
+	if err != nil {
+		return false
+	}
 
 	// 	port := os.Getenv("PORT")
 	// 	appEnv := os.Getenv("APP_ENV")
@@ -53,4 +55,5 @@ func main() {
 		return
 	}
 	initialize.InitApp()
+
 }

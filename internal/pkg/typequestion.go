@@ -125,8 +125,10 @@ func ConvertToBsonMArray(array bson.A) []bson.M {
 	var convertedArray []bson.M
 	for _, item := range array {
 		switch v := item.(type) {
-		case map[string]interface{}:
+		case primitive.M:
 			// Convert map[string]interface{} to bson.M
+			convertedArray = append(convertedArray, bson.M(v))
+		case map[string]interface{}:
 			convertedArray = append(convertedArray, bson.M(v))
 		default:
 			fmt.Printf("item is of an unexpected type: %T\n", item)

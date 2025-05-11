@@ -54,7 +54,6 @@ func (rt RoutesTest) GetTestRouter(r *Router) {
 
 	// Routes for marking test completion and sending test results
 	r.Handle("/test/done", rt.auth.AuthMiddleware(http.HandlerFunc(rt.getDoneTest))).Methods("POST")
-	r.Handle("/test/send", rt.auth.AuthMiddleware(http.HandlerFunc(rt.sendTest))).Methods("POST")
 }
 
 func (r *RoutesTest) createTest(w http.ResponseWriter, req *http.Request) {
@@ -65,7 +64,6 @@ func (r *RoutesTest) createTest(w http.ResponseWriter, req *http.Request) {
 
 	// Generate update fields from the test struct
 	if err := json.NewDecoder(req.Body).Decode(&test); err != nil {
-		fmt.Println(err)
 		pkg.SendError(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
@@ -90,6 +88,7 @@ func (r *RoutesTest) updateTest(w http.ResponseWriter, req *http.Request) {
 		pkg.SendError(w, "Invalid email ID", http.StatusBadRequest)
 		return
 	}
+
 	var testUpdate entity.Test
 	// Generate update fields from the test struct
 	if err := json.NewDecoder(req.Body).Decode(&testUpdate); err != nil {
@@ -98,7 +97,6 @@ func (r *RoutesTest) updateTest(w http.ResponseWriter, req *http.Request) {
 	}
 
 	testUpdate.EmailID = emailID
-
 	r.testUseCase.UpdateTest(context.TODO(), &testUpdate)
 	pkg.SendResponse(w, http.StatusOK, testUpdate)
 }
@@ -114,7 +112,6 @@ func (r *RoutesTest) deleteTest(w http.ResponseWriter, req *http.Request) {
 		pkg.SendError(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
-
 	err := r.testUseCase.DeleteTest(context.TODO(), testDelete.ID, emailID)
 	if err != nil {
 		pkg.SendError(w, "Invalid request", http.StatusBadRequest)
@@ -151,7 +148,7 @@ func (r *RoutesTest) getAllTestOfClassByEmail(w http.ResponseWriter, req *http.R
 	}
 
 	type classIDRequest struct {
-		ClassIDs []primitive.ObjectID `json:"_id"`
+		ClassIDs primitive.ObjectID `json:"_id"`
 	}
 
 	// Decode class IDs from request body
@@ -168,7 +165,7 @@ func (r *RoutesTest) getAllTestOfClassByEmail(w http.ResponseWriter, req *http.R
 	}
 
 	// Fetch tests based on class IDs and email
-	tests, err := r.testUseCase.GetAllTestOfClass(req.Context(), email, classIDData.ClassIDs)
+	tests, err := r.classUseCase.GetAllTestOfClass(req.Context(), email, classIDData.ClassIDs)
 	if err != nil {
 		pkg.SendError(w, "Failed to get tests", http.StatusInternalServerError)
 		return
@@ -176,6 +173,13 @@ func (r *RoutesTest) getAllTestOfClassByEmail(w http.ResponseWriter, req *http.R
 
 	pkg.SendResponse(w, http.StatusOK, tests)
 }
+
+// Sử dụng lock để tránh truy vấn MongoDB nhiều lần
+// if err := r.redisUseCase.Lock(req.Context(), cacheKeyQuestions); err != nil {
+// 	pkg.SendError(w, "Resource is busy, please retry", http.StatusTooManyRequests)
+// 	return
+// }
+// defer r.redisUseCase.Unlock(req.Context(), cacheKeyQuestions) // Bỏ lock sau khi hoàn thành
 
 func (r *RoutesTest) getQuestionOfTest(w http.ResponseWriter, req *http.Request) {
 	email, ok := req.Context().Value("email").(string)
@@ -187,7 +191,8 @@ func (r *RoutesTest) getQuestionOfTest(w http.ResponseWriter, req *http.Request)
 	}
 
 	var test struct {
-		ID        primitive.ObjectID `json:"_id"`
+		ClassID   primitive.ObjectID `json:"class_id"`
+		TestID    primitive.ObjectID `json:"test_id"`
 		EmailName string             `json:"author_mail"`
 		IsTest    bool               `json:"is_test"`
 	}
@@ -197,37 +202,24 @@ func (r *RoutesTest) getQuestionOfTest(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	cacheKeyTestInfo := fmt.Sprintf("test_info_%s", test.ID.Hex())
-	cacheKeyQuestions := fmt.Sprintf("questions_%s", test.ID.Hex())
-	cacheKeyDefaultQuestions := fmt.Sprintf("questions_default_%s", test.ID.Hex())
+	cacheKeyTestInfo := fmt.Sprintf("test_info_%s", test.TestID.Hex())
+	cacheKeyQuestions := fmt.Sprintf("questions_%s", test.TestID.Hex())
 
 	// Check and load cached test info and questions
 	testInfo, questions, err := r.loadCachedTestData(req.Context(), cacheKeyTestInfo, cacheKeyQuestions, email)
 	if err == nil && testInfo != nil && questions != nil {
-		// If the test requires an answer, retrieve it and prepare the response
-		if testInfo["is_test"] == true {
-			if answer, err := r.answerUseCase.GetAnswer(req.Context(), primitive.M{"test_id": test.ID, "email_id": emailID}); err == nil && answer.EmailID != "" {
-				response := primitive.M{"answer": answer, "questions": questions}
-				pkg.SendResponse(w, http.StatusOK, response)
-				return
-			}
-			r.answerUseCase.CreateNewAnswer(req.Context(), &entity.TestAnswer{
-				TestId:  test.ID,
-				EmailID: emailID,
-				Email:   email,
-			})
-		}
 		pkg.SendResponse(w, http.StatusOK, primitive.M{"test_info": testInfo, "questions": pkg.ShuffleQuestionsAndAnswers(questions)})
 		return
 	}
 
 	// Fetch question IDs and test info if not cached
-	questionIDs, testInfo, err := r.testUseCase.GetQuestionOfTest(req.Context(), test.ID, email)
+	questionIDs, testInfo, err := r.classUseCase.GetQuestionOfTest(req.Context(), test.ClassID, test.TestID, email)
 	if err != nil {
 		pkg.SendError(w, "Failed to retrieve test data", http.StatusInternalServerError)
 		return
 	}
 	// Cache test info
+
 	var minutesDuration int
 	if val, ok := testInfo["duration_minutes"].(int64); ok {
 		minutesDuration = int(val)
@@ -236,10 +228,8 @@ func (r *RoutesTest) getQuestionOfTest(w http.ResponseWriter, req *http.Request)
 	}
 	// Convert minutesDuration directly to time.Duration
 	duration := time.Duration(minutesDuration+1) * time.Minute
-	fmt.Println(duration)
 	cacheData(r.redisUseCase, req.Context(), cacheKeyTestInfo, testInfo, duration)
 	// Delete allowed users for security and validate timing
-	delete(testInfo, "allowed_users")
 	if !isTestAccessible(testInfo) {
 		pkg.SendError(w, "TEST IS NOT ALLOWED", http.StatusForbidden)
 		return
@@ -251,28 +241,26 @@ func (r *RoutesTest) getQuestionOfTest(w http.ResponseWriter, req *http.Request)
 		pkg.SendError(w, "Failed to retrieve questions", http.StatusInternalServerError)
 		return
 	}
-	cacheData(r.redisUseCase, req.Context(), cacheKeyDefaultQuestions, questions, duration)
 
 	// Generate final options and cache them
-	finalOptionMap := r.generateFinalOptionsMap(questions, test.ID.Hex())
+	finalOptionMap := r.generateFinalOptionsMap(questions, test.TestID.Hex())
 	questionsJSON, err := json.Marshal(finalOptionMap)
 	if err != nil {
 		pkg.SendError(w, "Failed to process questions", http.StatusInternalServerError)
 		return
 	}
-	r.redisUseCase.HSet(req.Context(), fmt.Sprintf("questions_id_%s", test.ID.Hex()), duration, map[string]interface{}{"questions": questionsJSON})
+	r.redisUseCase.HSet(req.Context(), fmt.Sprintf("questions_id_%s", test.TestID.Hex()), duration, map[string]interface{}{"questions": questionsJSON})
 
 	if testInfo["is_test"] == true {
 		shuffledQuestions := pkg.ShuffleQuestionsAndAnswers(questions)
 		cacheData(r.redisUseCase, req.Context(), cacheKeyQuestions, shuffledQuestions, duration)
-		if answer, err := r.answerUseCase.GetAnswer(req.Context(), primitive.M{"test_id": test.ID, "email_id": emailID}); err == nil && len(answer.ListQuestionAnswer) != 0 {
-			response := primitive.M{"answer": answer, "questions": questions}
-			fmt.Println(response)
+		if answer, err := r.answerUseCase.GetAnswer(req.Context(), primitive.M{"test_id": test.TestID, "email_id": emailID}); err == nil && len(answer.ListQuestionAnswer) != 0 {
+			response := primitive.M{"test_info": testInfo, "answer": answer, "questions": questions}
 			pkg.SendResponse(w, http.StatusOK, response)
 			return
 		} else {
 			r.answerUseCase.CreateNewAnswer(req.Context(), &entity.TestAnswer{
-				TestId:  test.ID,
+				TestId:  test.TestID,
 				EmailID: emailID,
 				Email:   email,
 			})
@@ -280,6 +268,11 @@ func (r *RoutesTest) getQuestionOfTest(w http.ResponseWriter, req *http.Request)
 			return
 		}
 	} else {
+		if answer, err := r.answerUseCase.GetAnswer(req.Context(), primitive.M{"test_id": test.TestID, "email_id": emailID}); err == nil && len(answer.ListQuestionAnswer) != 0 {
+			response := primitive.M{"test_info": testInfo, "answer": answer, "questions": questions}
+			pkg.SendResponse(w, http.StatusOK, response)
+			return
+		}
 		pkg.SendResponse(w, http.StatusOK, primitive.M{"test_info": testInfo, "questions": questions})
 		return
 	}
@@ -357,76 +350,6 @@ func (r *RoutesTest) getQuestionID(question primitive.M) string {
 	return ""
 }
 
-// // NewAnswerIdTest generates new ObjectIDs for each option in the questions
-// // and stores question keys along with option keys in Redis.
-// func (r *RoutesTest) newAnswerIdTest(ctx context.Context, questions []primitive.M, testKey string) ([]primitive.M, error) {
-// 	rand.Seed(time.Now().UnixNano())              // Initialize random seed
-// 	questionMap := make(map[string]interface{})   // Map to store question and option IDs
-// 	questionIdMap := make(map[string]interface{}) // Map to store question and option IDs
-
-// 	// Iterate through each question
-// 	for _, question := range questions {
-// 		// Generate new ObjectID for the question
-// 		newQuestionID := primitive.NewObjectID().Hex()
-// 		var questionID string
-// 		if id, ok := question["_id"].(primitive.ObjectID); ok {
-// 			questionID = id.Hex() // Convert ObjectID to string
-// 		} else if idStr, ok := question["_id"].(string); ok {
-// 			questionID = idStr // Use it directly if it's already a string
-// 		} else {
-// 			fmt.Println("Error: _id is neither ObjectID nor string")
-// 			return nil, nil // Handle the error as needed, e.g., skip this question
-// 		}
-
-// 		// Now use questionID safely
-// 		questionIdMap[string(newQuestionID)] = questionID
-// 		question["_id"] = newQuestionID // Update the question in the slice
-// 		// Create a nested map for storing option IDs for this question
-// 		optionMap := make(map[string]string)
-
-// 		switch question["type"] {
-// 		case "fill_in_the_blank":
-// 			if options, ok := question["fill_in_the_blank"].(primitive.A); ok {
-// 				for _, opt := range options {
-// 					if option, ok := opt.(map[string]interface{}); ok {
-// 						updateOptionID(option, optionMap) // Update option ID for fill_in_the_blank
-// 					}
-// 				}
-// 			}
-// 		default:
-// 			if options, ok := question["options"].(primitive.A); ok {
-// 				for _, opt := range options {
-// 					if option, ok := opt.(map[string]interface{}); ok {
-// 						updateOptionID(option, optionMap) // Update option ID for default case
-// 					}
-// 				}
-// 			}
-// 		}
-
-// 		// Encode the option map to JSON string
-// 		optionMapJSON, err := json.Marshal(optionMap)
-// 		if err != nil {
-// 			return nil, fmt.Errorf("failed to marshal option map to JSON: %v", err)
-// 		}
-
-// 		// Store the encoded option map in the question map using the new question ID as the key
-// 		questionMap[string(newQuestionID)] = string(optionMapJSON)
-// 	}
-
-// 	// Store the nested question and option maps in Redis under the provided test key
-// 	err := r.redisUseCase.HSet(ctx, testKey, duration, questionMap)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to store question IDs in Redis: %v", err)
-// 	}
-
-// 	err = r.redisUseCase.HSet(ctx, testKey+"_id", duration, questionIdMap)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to store question IDs in Redis: %v", err)
-// 	}
-
-// 	return questions, nil // Return modified questions
-// }
-
 func updateOptionID(option map[string]interface{}, optionMap map[string]string) {
 	// Store the option ID with the old option ID as key
 	if oldOptionID, ok := option["id"].(primitive.ObjectID); ok {
@@ -455,7 +378,6 @@ func cacheData(redisUseCase service.RedisUseCase, ctx context.Context, key strin
 }
 
 func isTestAccessible(testInfo map[string]interface{}) bool {
-
 	startTime, errStart := utils.StringToTime(testInfo["start_time"].(string))
 	endTime, errEnd := utils.StringToTime(testInfo["end_time"].(string))
 
@@ -467,20 +389,13 @@ func isTestAccessible(testInfo map[string]interface{}) bool {
 	return startTime.Before(currentTime) && endTime.After(currentTime)
 }
 
-// sendTest processes the test submission
-func (r *RoutesTest) sendTest(w http.ResponseWriter, req *http.Request) {
-	//email, ok := req.Context().Value("email").(string)
-	emailID, ok := req.Context().Value("email_id").(string)
-	if !ok {
-		pkg.SendError(w, "Invalid email ID", http.StatusBadRequest)
-		return
-	}
+// // sendTest processes the test submission
+// func (r *RoutesTest) sendTest(w http.ResponseWriter, req *http.Request) {
 
-	// TODO: Process the test submission based on email and emailID
+// 	// TODO: Process the test submission based on email and emailID
 
-	fmt.Println("Email ID:", emailID)
-	pkg.SendResponse(w, http.StatusOK, "Test sent successfully")
-}
+// 	pkg.SendResponse(w, http.StatusOK, "Test sent successfully")
+// }
 
 // getDoneTest handles retrieving a user's done test
 func (r *RoutesTest) getDoneTest(w http.ResponseWriter, req *http.Request) {
@@ -512,7 +427,7 @@ func (r *RoutesTest) handleOrderQuestion(question primitive.M) []string {
 
 	options := make([]map[string]interface{}, 0, len(rawOptions))
 	for _, opt := range rawOptions {
-		if option, ok := opt.(map[string]interface{}); ok {
+		if option, ok := opt.(primitive.M); ok {
 			options = append(options, option)
 		} else {
 			fmt.Println("Error: Option is not of type map[string]interface{}")
@@ -544,7 +459,8 @@ func (r *RoutesTest) handleSingleChoiceQuestion(question primitive.M) []string {
 	}
 
 	for _, option := range optionsValue {
-		if optionMap, ok := option.(map[string]interface{}); ok {
+		if optionMap, ok := option.(primitive.M); ok {
+
 			if isCorrect, exists := optionMap["iscorrect"].(bool); exists && isCorrect {
 				if id, idOk := optionMap["id"].(primitive.ObjectID); idOk {
 					return []string{id.Hex()}
@@ -565,7 +481,7 @@ func (r *RoutesTest) handleMultipleChoiceQuestion(question primitive.M) []string
 
 	var correctIDs []string
 	for _, option := range optionsValue {
-		if optionMap, ok := option.(map[string]interface{}); ok {
+		if optionMap, ok := option.(primitive.M); ok {
 			if isCorrect, exists := optionMap["iscorrect"].(bool); exists && isCorrect {
 				if id, idOk := optionMap["id"].(primitive.ObjectID); idOk {
 					correctIDs = append(correctIDs, id.Hex())
@@ -586,7 +502,7 @@ func (r *RoutesTest) handleFillInTheBlank(question primitive.M) []map[string]str
 
 	var fillInData []map[string]string
 	for _, item := range fillInBlanks {
-		itemMap, ok := item.(map[string]interface{})
+		itemMap, ok := item.(primitive.M)
 		if !ok {
 			fmt.Println("Error: item in fill_in_the_blank is not of type map[string]interface{}")
 			continue
@@ -614,7 +530,7 @@ func (r *RoutesTest) handleMatchChoiceQuestion(question primitive.M) map[string]
 
 	matchMap := make(map[string]string)
 	for _, option := range options {
-		optionMap, ok := option.(map[string]interface{})
+		optionMap, ok := option.(primitive.M)
 		if !ok {
 			fmt.Println("Error: Option in match_choice_question is not of type map[string]interface{}")
 			continue

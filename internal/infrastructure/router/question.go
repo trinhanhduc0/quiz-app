@@ -38,6 +38,7 @@ func (r *RoutesQuestion) createQuestions(w http.ResponseWriter, req *http.Reques
 	var question entity.Question
 
 	if err := json.NewDecoder(req.Body).Decode(&question); err != nil {
+		fmt.Println(err)
 		pkg.SendError(w, "Question not created", http.StatusInternalServerError)
 		return
 	}
@@ -49,9 +50,8 @@ func (r *RoutesQuestion) createQuestions(w http.ResponseWriter, req *http.Reques
 			fmt.Println(question.FillInTheBlanks[i].ID)
 		}
 	case "match_choice_question":
-		for i := range question.Options {
-			question.Options[i].MatchId = primitive.NewObjectID()
-			question.Options[i].ID = primitive.NewObjectID()
+		for i := range question.Match {
+			question.Match[i].MatchId = primitive.NewObjectID()
 		}
 	case "multiple_choice_question", "single_choice_question", "order_question":
 		for i := range question.Options {
@@ -131,7 +131,6 @@ func (r *RoutesQuestion) updateQuestion(w http.ResponseWriter, req *http.Request
 			fmt.Println(question.Options[i].MatchId)
 		}
 	case "multiple_choice_question", "single_choice_question", "order_question":
-		// Giả sử bạn có một danh sách các câu trả lời từ người dùng
 		for i, v := range question.Options {
 			if primitive.NilObjectID == v.ID {
 				question.Options[i].ID = primitive.NewObjectID()

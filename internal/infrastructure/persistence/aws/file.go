@@ -70,15 +70,6 @@ func (r *FileAWSRepository) GetFile(ctx context.Context, email string, filename 
 	return result.Body, nil
 }
 
-func (r *FileAWSRepository) UpdateFile(ctx context.Context, email string, file *entity.File, body io.ReadSeeker) (primitive.ObjectID, error) {
-	err := r.DeleteFile(ctx, email, file.Filename)
-	if err != nil {
-		return primitive.NilObjectID, fmt.Errorf("failed to delete old file: %v", err)
-	}
-
-	return r.CreateFile(ctx, file, body)
-}
-
 func (r *FileAWSRepository) DeleteFile(ctx context.Context, email string, filename string) error {
 	userPrefix := email + "/"
 	fileKey := userPrefix + filename

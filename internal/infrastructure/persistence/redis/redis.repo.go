@@ -8,33 +8,43 @@ import (
 
 	"quiz-app/internal/domain/repository"
 
+	"github.com/bsm/redislock"
 	"github.com/redis/go-redis/v9"
 )
 
 // RedisClient wraps a Redis client with additional functionality
 type RedisClient struct {
 	client *redis.Client
+	locker *redislock.Client
 }
 
 // NewRedisClient initializes a new Redis client and checks the connection
 func NewRedisClient(redisURL string) (repository.RedisRepository, error) {
-	opt, err := redis.ParseURL(redisURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid Redis URL: %v", err)
-	}
+	// opt, err := redis.ParseURL(redisURL)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("invalid Redis URL: %v", err)
+	// }
+	// client := redis.NewClient(opt)
 
-	client := redis.NewClient(opt)
-
+	client := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // No password set
+		DB:       0,  // Use default DB
+		Protocol: 2,  // Connection protocol
+	})
+	locker := redislock.New(client)
 	// Kiểm tra kết nối
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// defer cancel()
 
-	_, err = client.Ping(ctx).Result()
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to Redis: %v", err)
-	}
+	// _, err = client.Ping(ctx).Result()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to connect to Redis: %v", err)
+	// }
 
-	return &RedisClient{client: client}, nil
+	fmt.Println(client)
+
+	return &RedisClient{client: client, locker: locker}, nil
 }
 
 // Basic Redis operations
@@ -207,4 +217,22 @@ func GetRedis() (repository.RedisRepository, error) {
 
 	//redisURL := "rediss://default:YOUR_UPSTASH_PASSWORD@YOUR_UPSTASH_ENDPOINT:6379"
 	return NewRedisClient(redisURL)
+}
+func (r *RedisClient) Lock(ctx context.Context, key string) error {
+	lock, err := r.locker.Obtain(ctx, key, 5*time.Second, nil)
+	if err == redislock.ErrNotObtained {
+		return fmt.Errorf("could not obtain lock")
+	} else if err != nil {
+		return err
+	}
+	// Lưu lock để sử dụng sau
+	ctx = context.WithValue(ctx, key, lock)
+	return nil
+}
+
+func (r *RedisClient) Unlock(ctx context.Context, key string) {
+	lock, ok := ctx.Value(key).(*redislock.Lock)
+	if ok && lock != nil {
+		lock.Release(ctx)
+	}
 }

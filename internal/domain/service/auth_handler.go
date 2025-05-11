@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 )
 
@@ -28,7 +27,6 @@ func (h *AuthHandler) AuthMiddleware(next http.Handler) http.Handler {
 
 		claims, err := h.authUseCase.Authenticate(r.Context(), tokenString)
 		if err != nil {
-			fmt.Println(err)
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}

@@ -12,9 +12,7 @@ type Test struct {
 	TestName        string               `json:"test_name" bson:"test_name"`
 	Descript        string               `json:"descript" bson:"descript"`
 	QuestionIDs     []primitive.ObjectID `json:"question_ids" bson:"question_ids"`
-	AllowedUsers    []string             `json:"allowed_users" bson:"allowed_users"`
 	IsTest          bool                 `json:"is_test" bson:"is_test"`
-	Random          bool                 `json:"random" bson:"random"`
 	StartTime       string               `json:"start_time" bson:"start_time"`
 	EndTime         string               `json:"end_time" bson:"end_time"`
 	DurationMinutes int                  `json:"duration_minutes" bson:"duration_minutes"`

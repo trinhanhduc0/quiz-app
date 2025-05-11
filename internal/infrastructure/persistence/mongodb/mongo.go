@@ -20,32 +20,29 @@ var (
 // ConnectMongoDB khởi tạo và trả về kết nối MongoDB
 func ConnectMongoDB(uri string) *mongo.Client {
 	clientOnce.Do(func() {
-		clientOptions := options.Client().ApplyURI(uri)
-		client, err := mongo.NewClient(clientOptions)
-		if err != nil {
-			log.Fatalf("Failed to create MongoDB client: %v", err)
-		}
-
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		err = client.Connect(ctx)
+		serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+		clientOptions := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPI)
+
+		client, err := mongo.Connect(ctx, clientOptions)
 		if err != nil {
 			log.Fatalf("Failed to connect to MongoDB: %v", err)
 		}
 
-		// Kiểm tra kết nối
-		err = client.Ping(ctx, nil)
-		if err != nil {
+		// Kiểm tra kết nối bằng Ping
+		if err := client.Ping(ctx, nil); err != nil {
 			log.Fatalf("Failed to ping MongoDB: %v", err)
 		}
 
 		clientInstance = client
-		fmt.Println("Connected to MongoDB!")
+		fmt.Println("✅ Connected to MongoDB!")
 	})
 
 	return clientInstance
 }
+
 
 // GetMongoClient trả về client MongoDB đã kết nối
 func GetMongoClient() *mongo.Client {

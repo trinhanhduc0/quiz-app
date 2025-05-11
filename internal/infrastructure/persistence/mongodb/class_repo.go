@@ -58,6 +58,7 @@ func (r *ClassMongoRepository) GetClassByAuthorEmail(ctx context.Context, email_
 // UpdateClass implements repository.ClassRepository.UpdateClass
 func (r *ClassMongoRepository) UpdateClass(ctx context.Context, class *entity.Class) (any, error) {
 	filter := bson.M{"_id": class.ID} // Giả sử class có trường ID kiểu ObjectID
+	fmt.Println("CLASS.StudentsWait: ", class.StudentsWait)
 	_, err := r.CollRepo.Update(ctx, filter, bson.M{"$set": class})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update class: %w", err)
@@ -144,4 +145,104 @@ func (r *ClassMongoRepository) JoinClass(ctx context.Context, classID primitive.
 	}
 
 	return nil
+}
+
+func (r *ClassMongoRepository) GetQuestionOfTest(ctx context.Context, classID, testID primitive.ObjectID, email string) ([]primitive.ObjectID, primitive.M, error) {
+	filter := bson.M{
+		"_id": classID,
+		"test": bson.M{
+			"$elemMatch": bson.M{
+				"_id": testID,
+			},
+		},
+	}
+	
+	projection := bson.M{
+		"test.$": 1, // Lấy đúng test cần tìm trong mảng
+	}
+
+	result, err := r.CollRepo.GetOneWithProjection(ctx, filter, projection)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get test from class: %w", err)
+	}
+	fmt.Printf("Result: %#v\n", result) // In kết quả trả về để kiểm tra
+
+	if len(result) == 0 {
+		return nil, nil, fmt.Errorf("no class found")
+	}
+
+	tests, ok := result["test"].(bson.A)
+	if !ok || len(tests) == 0 {
+		return nil, nil, fmt.Errorf("no matching test found")
+	}
+
+	testDoc, ok := tests[0].(bson.M)
+	if !ok {
+		return nil, nil, fmt.Errorf("invalid test document format")
+	}
+
+	questionIDsRaw, ok := testDoc["question_ids"].(bson.A)
+	if !ok {
+		return nil, nil, fmt.Errorf("question_ids not found or invalid")
+	}
+	fmt.Println(questionIDsRaw)
+
+	var questionIDs []primitive.ObjectID
+	for _, q := range questionIDsRaw {
+		if oid, ok := q.(primitive.ObjectID); ok {
+			questionIDs = append(questionIDs, oid)
+		}
+	}
+
+	delete(testDoc, "question_ids")
+
+	return questionIDs, testDoc, nil
+}
+
+func (r *ClassMongoRepository) GetAllTestOfClass(ctx context.Context, email string, ids primitive.ObjectID) ([]any, error) {
+	filter := bson.M{
+		"_id": ids,
+	}
+
+	projection := bson.M{
+		"test":       1,
+		"class_name": 1,
+		"_id":        1,
+	}
+
+	classes, err := r.CollRepo.GetWithProjection(ctx, filter, projection)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get class tests: %w", err)
+	}
+
+	var tests []any
+
+	for _, c := range classes {
+		classDoc, ok := c.(bson.M)
+		if !ok {
+			continue
+		}
+
+		className := classDoc["class_name"]
+		classID := classDoc["_id"]
+		classTests, ok := classDoc["test"].(bson.A)
+		if !ok {
+			continue
+		}
+
+		for _, t := range classTests {
+			testDoc, ok := t.(bson.M)
+			if !ok {
+				continue
+			}
+
+			testDoc["class_name"] = className
+			testDoc["class_id"] = classID
+
+			tests = append(tests, testDoc) // testDoc là kiểu bson.M → phù hợp với any
+		}
+	}
+
+	return tests, nil
+
 }

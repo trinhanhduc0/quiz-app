@@ -102,6 +102,19 @@ func (r *CollRepository) GetWithProjection(ctx context.Context, filter, projecti
 	return results, nil
 }
 
+func (r *CollRepository) GetOneWithProjection(ctx context.Context, filter, projection any) (bson.M, error) {
+	var result bson.M
+	err := r.Collection.FindOne(ctx, filter, options.FindOne().SetProjection(projection)).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil // không có tài liệu phù hợp
+		}
+		return nil, fmt.Errorf("failed to execute findOne query: %w", err)
+	}
+	return result, nil
+}
+
+
 func (r *CollRepository) GetFilter(ctx context.Context, filter any) (any, error) {
 	var result map[string]interface{}
 	err := r.Collection.FindOne(ctx, filter).Decode(&result)

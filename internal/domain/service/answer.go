@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	entity "quiz-app/internal/domain/entities"
 	"quiz-app/internal/domain/repository"
 
@@ -29,13 +28,10 @@ func (au *AnswerUseCase) CreateNewAnswer(ctx context.Context, answer *entity.Tes
 }
 
 func (au *AnswerUseCase) UpdateAnswer(ctx context.Context, answer entity.TestAnswer) error {
-	newAnswer, err := entity.UpdateAnswer(answer)
+	newAnswer, err := entity.SubmitAnswer(answer)
 	if err != nil {
 		return err
 	}
-	fmt.Println("UPDATE")
-	fmt.Println(newAnswer)
-
 	_, err = au.repo.UpdateAnswer(ctx, *newAnswer)
 	return err
 }

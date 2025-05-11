@@ -327,15 +327,22 @@ func (rf *RoutesFile) getImageFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (rf *RoutesFile) userGetFile(w http.ResponseWriter, r *http.Request) {
+	email := r.Context().Value("email").(string)
+
 	var getFile struct {
 		Email    string `json:"email"`
 		Filename string `json:"filename"`
 	}
+
 	if err := json.NewDecoder(r.Body).Decode(&getFile); err != nil {
 		pkg.SendError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	fmt.Println(getFile)
+	if len(getFile.Email) == 0 {
+		getFile.Email = email
+	}
 	fileContent, err := rf.awsS3UseCase.GetFile(r.Context(), getFile.Email, getFile.Filename)
 	if err != nil {
 		http.Error(w, "Error retrieving file from S3", http.StatusInternalServerError)

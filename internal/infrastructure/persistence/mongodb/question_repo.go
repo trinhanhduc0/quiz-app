@@ -27,29 +27,35 @@ func NewQuestionMongoRepository() repository.QuestionRepository {
 }
 
 func (r *QuestionMongoRepository) GetAllQuestions(ctx context.Context, questionIDs []primitive.ObjectID) ([]primitive.M, error) {
-	// Kiểm tra xem questionIDs có rỗng không
 	if len(questionIDs) == 0 {
 		return nil, fmt.Errorf("no question IDs provided")
 	}
 
-	// Sử dụng $in để lọc câu hỏi theo danh sách ObjectIDs
+	// Lọc theo danh sách ID
 	questionFilter := bson.M{"_id": bson.M{"$in": questionIDs}}
 
-	// Fetch all matching questions
-	questionList, err := r.CollRepo.GetAll(ctx, questionFilter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get questions from test with filter %v: %w", questionFilter, err)
+	// Projection để loại bỏ các trường không cần
+	projection := bson.M{
+		"createdAt": 0,
+		"updatedAt": 0,
+		"metadata":  0,
 	}
 
-	// Chuyển đổi questionList sang []primitive.M
+	// Fetch với projection
+	questionList, err := r.CollRepo.GetWithProjection(ctx, questionFilter, projection)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get questions with filter %v: %w", questionFilter, err)
+	}
+
+	fmt.Println(questionList)
 	var results []primitive.M
 	for _, item := range questionList {
-		// Kiểm tra kiểu của item
-		if question, ok := item.(map[string]interface{}); ok {
-			// Chuyển đổi map[string]interface{} sang primitive.M
-			primitiveM := primitive.M(question) // ép kiểu
+		fmt.Printf("%T", item)
+		if question, ok := item.(primitive.M); ok {
+			primitiveM := primitive.M(question)
 			results = append(results, primitiveM)
 		} else {
+			fmt.Println("unexpected type in questionList: %T", item)
 			return nil, fmt.Errorf("unexpected type in questionList: %T", item)
 		}
 	}

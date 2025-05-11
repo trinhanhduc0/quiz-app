@@ -23,11 +23,15 @@ type QuestionAnswer struct {
 	Type            string             `json:"type,omitempty" bson:"type,omitempty"`
 	FillInTheBlanks []FillInTheBlank   `json:"fill_in_the_blank,omitempty" bson:"fill_in_the_blank,omitempty"`
 	Options         []OptionAnswer     `json:"options,omitempty" bson:"options,omitempty"`
+	Match           []MatchAnswer      `json:"match,omitempty" bson:"match,omitempty"`
 }
 
 // Option represents each option in the question.
 type OptionAnswer struct {
-	ID      primitive.ObjectID `json:"id" bson:"id,omitempty"`
+	ID primitive.ObjectID `json:"id" bson:"id,omitempty"`
+}
+
+type MatchAnswer struct {
 	MatchId primitive.ObjectID `json:"matchid" bson:"matchid,omitempty"`
 }
 
@@ -45,7 +49,7 @@ func CreateNewAnswer(testId primitive.ObjectID, emailID string, email string) (*
 	return &newAnswer, nil
 }
 
-func UpdateAnswer(answer TestAnswer) (*TestAnswer, error) {
+func SubmitAnswer(answer TestAnswer) (*TestAnswer, error) {
 	answer.EndTime = time.Now()
 
 	// Validate QuestionIDs elements

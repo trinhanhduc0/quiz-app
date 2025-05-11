@@ -20,20 +20,19 @@ type Class struct {
 	CreatedAt     time.Time            `json:"created_at" bson:"created_at"`
 	Tags          []string             `json:"tags" bson:"tags"`
 	CodeClass     string
+	Test          []Test `json:"test" bson:"test"`
 }
 
 func (c *Class) Validate() error {
 	if c.ID.IsZero() {
 		return errors.New("invalid Class ID")
 	}
-
 	// Check list TestID
 	for _, TestID := range c.TestID {
 		if TestID.IsZero() {
 			return errors.New("invalid Test ID")
 		}
 	}
-
 	return nil
 }
 

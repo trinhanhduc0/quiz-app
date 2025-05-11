@@ -110,3 +110,11 @@ func (uc *RedisUseCase) GeoPos(ctx context.Context, key string, members ...strin
 func (uc *RedisUseCase) Close(ctx context.Context) {
 	uc.RedisRepo.Close(ctx)
 }
+
+func (uc *RedisUseCase) Lock(ctx context.Context, key string) error {
+	return uc.RedisRepo.Lock(ctx, key)
+}
+
+func (uc *RedisUseCase) Unlock(ctx context.Context, key string) {
+	uc.RedisRepo.Unlock(ctx, key)
+}

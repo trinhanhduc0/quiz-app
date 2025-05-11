@@ -37,10 +37,11 @@ func StringToObjectId(id any) (primitive.ObjectID, error) {
 }
 
 func StringToTime(timeStr string) (time.Time, error) {
-	// Chuyển đổi chuỗi thời gian theo định dạng ISO 8601
-	t, err := time.Parse(time.RFC3339, timeStr)
+	// ISO 8601 format: "2025-04-25T18:00:00.000Z"
+	layout := time.RFC3339 // chuẩn ISO 8601
+	t, err := time.Parse(layout, timeStr)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid time format: %v", err)
+		return time.Time{}, errors.New("invalid time format: " + err.Error())
 	}
 	return t, nil
 }
@@ -179,41 +180,53 @@ func isEmpty(value reflect.Value) bool {
 
 	return false
 }
-func BuildBSON(testAnswer entity.TestAnswer) bson.M {
-	bsonData := bson.M{
-		"test_id":  testAnswer.TestId,
-		"email_id": testAnswer.EmailID,
-		"email":    testAnswer.Email,
-	}
 
-	var questions []bson.M
-	for _, qa := range testAnswer.ListQuestionAnswer {
-		qaData := bson.M{
-			"question_id": qa.QuestionID,
-		}
+// func BuildBSON(testAnswer entity.TestAnswer) bson.M {
+// 	bsonData := bson.M{
+// 		"test_id":  testAnswer.TestId,
+// 		"email_id": testAnswer.EmailID,
+// 		"email":    testAnswer.Email,
+// 	}
 
-		if len(qa.FillInTheBlanks) > 0 {
-			qaData["fill_in_the_blank"] = qa.FillInTheBlanks
-		}
+// 	var questions []bson.M
+// 	for _, qa := range testAnswer.ListQuestionAnswer {
+// 		qaData := bson.M{
+// 			"question_id": qa.QuestionID,
+// 		}
 
-		if len(qa.Options) > 0 {
-			var options []bson.M
-			for _, opt := range qa.Options {
-				optData := bson.M{
-					"matchid": opt.MatchId,
-					"_id":     opt.ID,
-				}
-				options = append(options, optData)
-			}
-			qaData["options"] = options
-		}
+// 		if len(qa.FillInTheBlanks) > 0 {
+// 			qaData["fill_in_the_blank"] = qa.FillInTheBlanks
+// 		}
 
-		questions = append(questions, qaData)
-	}
-	bsonData["answer"] = questions
+// 		if len(qa.Options) > 0 {
+// 			var options []bson.M
+// 			for _, opt := range qa.Options {
+// 				optData := bson.M{
+// 					"matchid": opt.MatchId,
+// 					"_id":     opt.ID,
+// 				}
+// 				options = append(options, optData)
+// 			}
+// 			qaData["options"] = options
+// 		}
 
-	return bsonData
-}
+// 		if len(qa.Match) > 0 {
+// 			var match []bson.M
+// 			for _, opt := range qa.Match {
+// 				optData := bson.M{
+// 					"matchid": opt.MatchId,
+// 				}
+// 				match = append(match, optData)
+// 			}
+// 			qaData["match"] = match
+// 		}
+
+// 		questions = append(questions, qaData)
+// 	}
+// 	bsonData["answer"] = questions
+
+// 	return bsonData
+// }
 
 // ConvertIDs converts string IDs to ObjectIDs for specified fields in a map.
 func ConvertIDs(fields map[string]interface{}, fieldNames ...string) {
