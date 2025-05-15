@@ -42,8 +42,8 @@ func createTestData() {
 		var question entity.Question
 		question.Type = qType
 		question.Metadata = entity.Metadata{Author: authorID}
-		question.CreatedAt = time.Now()
-		question.UpdatedAt = time.Now()
+		question.Created_At = time.Now()
+		question.Updated_At = time.Now()
 		question.Score = float32(rand.Intn(10) + 1)
 		question.Tags = []string{"tag1", "tag2"}
 		question.QuestionContent = entity.QuestionContent{
@@ -63,11 +63,13 @@ func createTestData() {
 			}
 		case "match_choice_question":
 			for j := 0; j < 3; j++ {
-				question.Options = append(question.Options, entity.Option{
-					ID:      primitive.NewObjectID(),
-					MatchId: primitive.NewObjectID(),
-					Text:    fmt.Sprintf("Ghép %d", j+1),
-					Match:   fmt.Sprintf("Đáp án %d", j+1),
+				question.MatchItems = append(question.MatchItems, entity.MatchItem{
+					ID:   primitive.NewObjectID(),
+					Text: fmt.Sprintf("Ghép %d", j+1),
+				})
+				question.MatchOptions = append(question.MatchOptions, entity.MatchOption{
+					ID:   primitive.NewObjectID(),
+					Text: fmt.Sprintf("Đáp án %d", j+1),
 				})
 			}
 		case "fill_in_the_blank":
@@ -82,7 +84,7 @@ func createTestData() {
 			}
 		case "order_question":
 			for j := 0; j < 3; j++ {
-				question.Options = append(question.Options, entity.Option{
+				question.OrderItems = append(question.OrderItems, entity.OrderItem{
 					ID:    primitive.NewObjectID(),
 					Text:  fmt.Sprintf("Bước %d", j+1),
 					Order: j + 1,

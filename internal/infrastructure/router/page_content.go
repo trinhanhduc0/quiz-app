@@ -174,13 +174,6 @@ func (r *RoutesTest) getAllTestOfClassByEmail(w http.ResponseWriter, req *http.R
 	pkg.SendResponse(w, http.StatusOK, tests)
 }
 
-// Sử dụng lock để tránh truy vấn MongoDB nhiều lần
-// if err := r.redisUseCase.Lock(req.Context(), cacheKeyQuestions); err != nil {
-// 	pkg.SendError(w, "Resource is busy, please retry", http.StatusTooManyRequests)
-// 	return
-// }
-// defer r.redisUseCase.Unlock(req.Context(), cacheKeyQuestions) // Bỏ lock sau khi hoàn thành
-
 func (r *RoutesTest) getQuestionOfTest(w http.ResponseWriter, req *http.Request) {
 	email, ok := req.Context().Value("email").(string)
 	emailID, ok := req.Context().Value("email_id").(string)
@@ -348,22 +341,6 @@ func (r *RoutesTest) getQuestionID(question primitive.M) string {
 		return idStr
 	}
 	return ""
-}
-
-func updateOptionID(option map[string]interface{}, optionMap map[string]string) {
-	// Store the option ID with the old option ID as key
-	if oldOptionID, ok := option["id"].(primitive.ObjectID); ok {
-		newOptionID := primitive.NewObjectID().Hex()
-		option["id"] = newOptionID // Update option ID
-		// Store newOptionID as key and oldOptionID as value
-		optionMap[newOptionID] = oldOptionID.Hex()
-	} else if oldOptionIDStr, ok := option["id"].(string); ok { // If the option ID is a string
-		newOptionID := primitive.NewObjectID().Hex()
-		option["id"] = newOptionID // Update option ID
-		optionMap[newOptionID] = oldOptionIDStr
-	} else {
-		fmt.Println("Failed to assert old option ID:", option["id"])
-	}
 }
 
 func cacheData(redisUseCase service.RedisUseCase, ctx context.Context, key string, data interface{}, time time.Duration) {

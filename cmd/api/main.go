@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"quiz-app/internal/initialize"
 
 	"github.com/joho/godotenv"
 )
 
 func LoadConfig() bool {
+	fmt.Println("RUNNNNN")
 	// // Không cần dòng này khi triển khai trên Fly.io
 	err := godotenv.Load(".env")
 	if err != nil {

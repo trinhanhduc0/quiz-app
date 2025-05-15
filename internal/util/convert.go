@@ -73,13 +73,36 @@ func GenerateUpdateFields(targetStruct any) (bson.M, error) {
 			}
 		case reflect.Slice:
 			if field.Len() > 0 {
-				if fieldName == "options" {
+				switch fieldName {
+				case "options":
 					options := cleanOptions(field.Interface().([]entity.Option))
 					if len(options) > 0 {
 						updateFields[fieldName] = options
 					}
-				} else {
-					updateFields[fieldName] = field.Interface()
+				case "fill_in_blanks":
+					blanks := cleanFillInBlanks(field.Interface().([]entity.FillInTheBlank))
+					if len(blanks) > 0 {
+						updateFields[fieldName] = blanks
+					}
+				case "order_items":
+					items := cleanOrderItems(field.Interface().([]entity.OrderItem))
+					if len(items) > 0 {
+						updateFields[fieldName] = items
+					}
+				case "match_items":
+					matchItems := cleanMatchItems(field.Interface().([]entity.MatchItem))
+					if len(matchItems) > 0 {
+						updateFields[fieldName] = matchItems
+					}
+				case "match_options":
+					matchOptions := cleanMatchOptions(field.Interface().([]entity.MatchOption))
+					if len(matchOptions) > 0 {
+						updateFields[fieldName] = matchOptions
+					}
+				case "correct_map":
+					if !field.IsNil() && len(field.Interface().(map[string]string)) > 0 {
+						updateFields[fieldName] = field.Interface()
+					}
 				}
 			}
 		case reflect.Ptr:
@@ -124,20 +147,57 @@ func cleanOptions(options []entity.Option) []bson.M {
 			"imageurl":  option.ImageURL,
 			"iscorrect": option.IsCorrect,
 		}
-		if option.MatchId != primitive.NilObjectID {
-			cleanedOption["matchid"] = option.MatchId
-		}
-		// Only include match if it's not empty
-		if option.Match != "" {
-			cleanedOption["match"] = option.Match
-		}
-		// Only include order if it's necessary (e.g., greater than 0)
-		if option.Order > 0 {
-			cleanedOption["order"] = option.Order
-		}
 		cleanedOptions = append(cleanedOptions, cleanedOption)
 	}
 	return cleanedOptions
+}
+
+func cleanFillInBlanks(blanks []entity.FillInTheBlank) []bson.M {
+	cleaned := []bson.M{}
+	for _, item := range blanks {
+		cleaned = append(cleaned, bson.M{
+			"id":             item.ID,
+			"text_before":    item.TextBefore,
+			"blank":          item.Blank,
+			"correct_answer": item.CorrectAnswer,
+			"text_after":     item.TextAfter,
+		})
+	}
+	return cleaned
+}
+
+func cleanOrderItems(items []entity.OrderItem) []bson.M {
+	cleaned := []bson.M{}
+	for _, item := range items {
+		cleaned = append(cleaned, bson.M{
+			"id":    item.ID,
+			"text":  item.Text,
+			"order": item.Order,
+		})
+	}
+	return cleaned
+}
+
+func cleanMatchItems(items []entity.MatchItem) []bson.M {
+	cleaned := []bson.M{}
+	for _, item := range items {
+		cleaned = append(cleaned, bson.M{
+			"id":   item.ID,
+			"text": item.Text,
+		})
+	}
+	return cleaned
+}
+
+func cleanMatchOptions(items []entity.MatchOption) []bson.M {
+	cleaned := []bson.M{}
+	for _, item := range items {
+		cleaned = append(cleaned, bson.M{
+			"id":   item.ID,
+			"text": item.Text,
+		})
+	}
+	return cleaned
 }
 
 // Generate fields for nested structs
@@ -180,53 +240,6 @@ func isEmpty(value reflect.Value) bool {
 
 	return false
 }
-
-// func BuildBSON(testAnswer entity.TestAnswer) bson.M {
-// 	bsonData := bson.M{
-// 		"test_id":  testAnswer.TestId,
-// 		"email_id": testAnswer.EmailID,
-// 		"email":    testAnswer.Email,
-// 	}
-
-// 	var questions []bson.M
-// 	for _, qa := range testAnswer.ListQuestionAnswer {
-// 		qaData := bson.M{
-// 			"question_id": qa.QuestionID,
-// 		}
-
-// 		if len(qa.FillInTheBlanks) > 0 {
-// 			qaData["fill_in_the_blank"] = qa.FillInTheBlanks
-// 		}
-
-// 		if len(qa.Options) > 0 {
-// 			var options []bson.M
-// 			for _, opt := range qa.Options {
-// 				optData := bson.M{
-// 					"matchid": opt.MatchId,
-// 					"_id":     opt.ID,
-// 				}
-// 				options = append(options, optData)
-// 			}
-// 			qaData["options"] = options
-// 		}
-
-// 		if len(qa.Match) > 0 {
-// 			var match []bson.M
-// 			for _, opt := range qa.Match {
-// 				optData := bson.M{
-// 					"matchid": opt.MatchId,
-// 				}
-// 				match = append(match, optData)
-// 			}
-// 			qaData["match"] = match
-// 		}
-
-// 		questions = append(questions, qaData)
-// 	}
-// 	bsonData["answer"] = questions
-
-// 	return bsonData
-// }
 
 // ConvertIDs converts string IDs to ObjectIDs for specified fields in a map.
 func ConvertIDs(fields map[string]interface{}, fieldNames ...string) {
@@ -271,7 +284,7 @@ func ConvertToBsonMArray(array bson.A) []bson.M {
 func RemoveEmptyFillInTheBlanks(fillInTheBlanks []entity.FillInTheBlank) []entity.FillInTheBlank {
 	var result []entity.FillInTheBlank
 	for _, item := range fillInTheBlanks {
-		if item.CorrectAnswer != "" { // Example condition, adjust as needed
+		if item.CorrectAnswer != "" {
 			result = append(result, item)
 		}
 	}
@@ -300,22 +313,4 @@ func RemoveEmptyQuestionAnswers(answers []entity.QuestionAnswer) []entity.Questi
 		}
 	}
 	return result
-}
-func parseTime(timeRaw interface{}) (primitive.DateTime, error) {
-	const isoLayout = time.RFC3339 // ISO 8601 layout: "2006-01-02T15:04:05Z07:00"
-
-	switch v := timeRaw.(type) {
-	case string:
-		parsedTime, err := time.Parse(isoLayout, v)
-		if err != nil {
-			return primitive.DateTime(0), fmt.Errorf("error parsing time string: %v", err)
-		}
-		return primitive.NewDateTimeFromTime(parsedTime), nil
-	case primitive.DateTime:
-		return v, nil
-	case time.Time:
-		return primitive.NewDateTimeFromTime(v), nil
-	default:
-		return primitive.DateTime(0), fmt.Errorf("unsupported time format")
-	}
 }

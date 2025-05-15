@@ -36,9 +36,9 @@ func (rq *RoutesQuestion) GetQuestionRouter(r *Router) {
 func (r *RoutesQuestion) createQuestions(w http.ResponseWriter, req *http.Request) {
 	userID := req.Context().Value("email_id").(string)
 	var question entity.Question
-
+	fmt.Println(req.Body)
 	if err := json.NewDecoder(req.Body).Decode(&question); err != nil {
-		fmt.Println(err)
+		fmt.Println("err: ", err)
 		pkg.SendError(w, "Question not created", http.StatusInternalServerError)
 		return
 	}
@@ -50,8 +50,11 @@ func (r *RoutesQuestion) createQuestions(w http.ResponseWriter, req *http.Reques
 			fmt.Println(question.FillInTheBlanks[i].ID)
 		}
 	case "match_choice_question":
-		for i := range question.Match {
-			question.Match[i].MatchId = primitive.NewObjectID()
+		for i := range question.MatchItems {
+			question.MatchItems[i].ID = primitive.NewObjectID()
+		}
+		for i := range question.MatchItems {
+			question.MatchItems[i].ID = primitive.NewObjectID()
 		}
 	case "multiple_choice_question", "single_choice_question", "order_question":
 		for i := range question.Options {
@@ -63,8 +66,10 @@ func (r *RoutesQuestion) createQuestions(w http.ResponseWriter, req *http.Reques
 
 	// Add metadata and timestamps
 	question.Metadata.Author = userID
-	question.CreatedAt = time.Now()
-	question.UpdatedAt = time.Now()
+	// Gán thời gian tạo và cập nhật
+	now := time.Now()
+	question.Created_At = now
+	question.Updated_At = now
 
 	insertedQuestion, err := r.questionUseCase.CreateQuestion(context.TODO(), &question)
 
@@ -106,40 +111,50 @@ func (r *RoutesQuestion) updateQuestion(w http.ResponseWriter, req *http.Request
 
 	var question entity.Question
 	if err := json.NewDecoder(req.Body).Decode(&question); err != nil {
+		fmt.Println(err)
 		pkg.SendError(w, "Question not updated", http.StatusInternalServerError)
 		return
 	}
-
+	fmt.Println("question: ", question)
 	question.Metadata.Author = emailID
 	switch question.Type {
 	case "fill_in_the_blank":
-		// Giả sử bạn có một danh sách các câu trả lời từ người dùng
 		for i, v := range question.FillInTheBlanks {
 			if primitive.NilObjectID == v.ID {
 				question.FillInTheBlanks[i].ID = primitive.NewObjectID()
 			}
 		}
 	case "match_choice_question":
-		for i, v := range question.Options {
+		for i, v := range question.MatchItems {
 			if primitive.NilObjectID == v.ID {
-				question.Options[i].ID = primitive.NewObjectID()
+				question.MatchItems[i].ID = primitive.NewObjectID()
 			}
-			fmt.Println(v.MatchId)
-			if primitive.NilObjectID == v.MatchId {
-				question.Options[i].MatchId = primitive.NewObjectID()
-			}
-			fmt.Println(question.Options[i].MatchId)
 		}
-	case "multiple_choice_question", "single_choice_question", "order_question":
+		for i, v := range question.MatchOptions {
+			if primitive.NilObjectID == v.ID {
+				question.MatchOptions[i].ID = primitive.NewObjectID()
+			}
+		}
+
+	case "multiple_choice_question", "single_choice_question":
 		for i, v := range question.Options {
 			if primitive.NilObjectID == v.ID {
 				question.Options[i].ID = primitive.NewObjectID()
 			}
 		}
 
+	case "order_question":
+		for i, v := range question.OrderItems {
+			if primitive.NilObjectID == v.ID {
+				question.OrderItems[i].ID = primitive.NewObjectID()
+			}
+		}
+
 	default:
 		fmt.Println("Error: Unknown question type")
 	}
+	now := time.Now()
+	question.Updated_At = now
 
 	questionUpdated, err := r.questionUseCase.UpdateQuestion(context.TODO(), &question)
 	if err != nil {

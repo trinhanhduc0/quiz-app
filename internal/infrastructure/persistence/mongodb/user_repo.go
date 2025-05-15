@@ -47,12 +47,6 @@ func hashPassword(password string) (string, error) {
 	return string(hashedBytes), nil
 }
 
-// ComparePassword compares a hashed password with a plain text password.
-func comparePassword(hashedPassword, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	return err == nil
-}
-
 func (ur UserMongoRepository) UpdateUser(ctx context.Context, user *entity.User) (*entity.User, error) {
 	filter := bson.M{"email_id": user.EmailID}
 	ur.CollRepo.Update(ctx, filter, user)

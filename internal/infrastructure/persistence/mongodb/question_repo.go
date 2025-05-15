@@ -6,7 +6,6 @@ import (
 
 	entity "quiz-app/internal/domain/entities"
 	"quiz-app/internal/domain/repository"
-	utils "quiz-app/internal/util"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -55,7 +54,7 @@ func (r *QuestionMongoRepository) GetAllQuestions(ctx context.Context, questionI
 			primitiveM := primitive.M(question)
 			results = append(results, primitiveM)
 		} else {
-			fmt.Println("unexpected type in questionList: %T", item)
+			fmt.Printf("unexpected type in questionList: %T", item)
 			return nil, fmt.Errorf("unexpected type in questionList: %T", item)
 		}
 	}
@@ -96,18 +95,13 @@ func (r *QuestionMongoRepository) GetAllQuestionsByUser(ctx context.Context, use
 func (r *QuestionMongoRepository) UpdateQuestion(ctx context.Context, question *entity.Question) (any, error) {
 	filter := bson.M{"metadata.author": question.Metadata.Author, "_id": question.ID}
 
-	questionField, err := utils.GenerateUpdateFields(question)
-
+	result, err := r.CollRepo.Update(ctx, filter, bson.M{"$set": question})
+	fmt.Println(result)
 	if err != nil {
 		return &entity.Question{}, fmt.Errorf("failed to update question: %w", err)
 	}
-
-	_, err = r.CollRepo.Update(ctx, filter, bson.M{"$set": questionField})
-	if err != nil {
-		return &entity.Question{}, fmt.Errorf("failed to update question: %w", err)
-	}
-	questionField["_id"] = question.ID
-	return questionField, nil
+	// questionField["_id"] = question.ID
+	return question, nil
 }
 
 // DeleteQuestion implements repository.QuestionRepository.DeleteQuestion
