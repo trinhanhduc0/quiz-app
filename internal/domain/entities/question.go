@@ -8,22 +8,22 @@ import (
 
 // Question represents the main question structure.
 type Question struct {
-	ID              primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
+	ID              primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 	Type            string             `json:"type" bson:"type,omitempty"` // "fill_in_the_blank", "multiple_choice_single", ...
-	QuestionContent QuestionContent    `json:"question_content" bson:"question_content,omitempty"`
-	Metadata        Metadata           `json:"metadata" bson:"metadata,omitempty"`
-	Tags            []string           `json:"tags" bson:"tags,omitempty"`
-	Suggestion      []string           `json:"suggestion" bson:"suggestion,omitempty"`
-	Score           float32            `json:"score" bson:"score,omitempty"`
-	Created_At       time.Time
-	Updated_At       time.Time
+	QuestionContent QuestionContent    `json:"question_content,omitempty" bson:"question_content,omitempty"`
+	Metadata        Metadata           `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	Tags            []string           `json:"tags,omitempty" bson:"tags,omitempty"`
+	Suggestion      []string           `json:"suggestion,omitempty" bson:"suggestion,omitempty"`
+	Score           float32            `json:"score,omitempty" bson:"score,omitempty"`
+	Created_At      time.Time          `json:"created_at,omitempty" bson:"created_at,omitempty"`
+	Updated_At      time.Time          `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
 
 	// Polymorphic fields (chỉ dùng tương ứng với Type)
-	Options         []Option         `json:"options,omitempty" bson:"options,omitempty"`             // for multiple_choice
-	FillInTheBlanks []FillInTheBlank `json:"fill_in_the_blanks,omitempty" bson:"fill_in_the_blanks,omitempty"`  // for fill_in_the_blank
-	OrderItems      []OrderItem      `json:"order_items,omitempty" bson:"order_items,omitempty"`     // for ordering_question
-	MatchItems      []MatchItem      `json:"match_items,omitempty" bson:"match_items,omitempty"`     // for match_choice
-	MatchOptions    []MatchOption    `json:"match_options,omitempty" bson:"match_options,omitempty"` // for match_choice
+	Options         []Option         `json:"options,omitempty" bson:"options,omitempty"`                       // for multiple_choice
+	FillInTheBlanks []FillInTheBlank `json:"fill_in_the_blanks,omitempty" bson:"fill_in_the_blanks,omitempty"` // for fill_in_the_blank
+	OrderItems      []OrderItem      `json:"order_items,omitempty" bson:"order_items,omitempty"`               // for ordering_question
+	MatchItems      []MatchItem      `json:"match_items,omitempty" bson:"match_items,omitempty"`               // for match_choice
+	MatchOptions    []MatchOption    `json:"match_options,omitempty" bson:"match_options,omitempty"`           // for match_choice
 	// CorrectMap      map[string]string `json:"correct_map,omitempty" bson:"correct_map,omitempty"`     // e.g. for match/map-based validation
 }
 
@@ -37,9 +37,9 @@ type MatchItem struct {
 }
 
 type MatchOption struct {
-	ID   	primitive.ObjectID `json:"id" bson:"id,omitempty"`
-	Text 	string             `json:"text" bson:"text,omitempty"`
-	MatchId string `json:"match_id" bson:"match_id,omitempty"`
+	ID      primitive.ObjectID `json:"id" bson:"id,omitempty"`
+	Text    string             `json:"text" bson:"text,omitempty"`
+	MatchId string             `json:"match_id" bson:"match_id,omitempty"`
 }
 
 // FillInTheBlank represents a fill-in-the-blank part of the question.

@@ -73,21 +73,21 @@ func (r *QuestionMongoRepository) CreateQuestion(ctx context.Context, question *
 	return question, nil
 }
 
-func (r *QuestionMongoRepository) GetAllQuestionsByUser(ctx context.Context, userID string, limit, page int) ([]any, error) {
-	// Create a filter to get questions by userID
-	filter := bson.M{"metadata.author": userID}
-
+func (r *QuestionMongoRepository) GetAllQuestionsByUser(ctx context.Context, email_id string, limit, page int) ([]any, error) {
+	// Create a filter to get questions by email_id
+	filter := bson.M{"metadata.author": email_id}
+	fmt.Println("AUTHOR: ", email_id)
 	// Set options for pagination
 	findOpts := options.Find()
 	findOpts.SetLimit(int64(limit))
 	findOpts.SetSkip(int64(page * limit)) // Calculate offset based on page and limit
 
 	// Fetch questions using the filter and options
-	allQuestions, err := r.CollRepo.GetAllWithOption(ctx, filter, findOpts)
+	allQuestions, err := r.CollRepo.GetAll(ctx, filter)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get questions by userID: %w", err)
+		return nil, fmt.Errorf("failed to get questions by email_id: %w", err)
 	}
-
+	fmt.Println("QUESTION: ", allQuestions)
 	return allQuestions, nil
 }
 

@@ -10,18 +10,16 @@ import (
 )
 
 // TypeQuestion trả về tên trường cho danh sách và câu trả lời dựa trên loại câu hỏi
-func TypeQuestion(typeQuestion string) (string, string) {
+func TypeShuffleQuestion(typeQuestion string) (string, string) {
 	switch typeQuestion {
 	case "fill_in_the_blank":
 		return "fill_in_the_blank", "correct_answer"
-
 	case "single_choice_question", "multiple_choice_question":
 		return "options", "iscorrect"
-
 	case "order_question":
-		return "options", "order"
-	case "match_choice_question":
-		return "options", "match"
+		return "order_items", "order"
+	// case "match_choice_question":
+	// 	return "match_options",
 	default:
 		return "", ""
 	}
@@ -35,10 +33,12 @@ func RemoveAnswer(questionList []bson.M, answerField string) []bson.M {
 	return questionList
 }
 
+// *****************SHUFFLE*******************
+
 func ProcessQuestion(question bson.M) bson.M {
 	// Determine the field names for options and answers based on the question type
 	typeQuestion := question["type"].(string)
-	arrayField, answerField := TypeQuestion(typeQuestion)
+	arrayField, answerField := TypeShuffleQuestion(typeQuestion)
 	switch typeQuestion {
 	case "match_choice_question":
 		if array, ok := question[arrayField].(bson.A); ok {
@@ -48,53 +48,46 @@ func ProcessQuestion(question bson.M) bson.M {
 			question[arrayField] = swapFields
 		}
 		return question
-	default:
+	case "single_choice_question", "multiple_choice_question":
+		if array, ok := question[arrayField].(bson.A); ok {
+			// Swap random array options
+			swapFields := swapOptions(array)
+			// Update the question with modified options
+			question[arrayField] = swapFields
+		}
+		return question
+	case "order_question":
+		if array, ok := question[arrayField].(bson.A); ok {
+			// Swap random array order items
+			swapFields := swapOrderItems(array)
+			// Update the question with modified order items
+			question[arrayField] = swapFields
+		}
 		if arrayField == "" || answerField == "" {
 			return question // Return original question if fields are not determined
 		}
-
-		switch v := question[arrayField].(type) {
-		case primitive.A:
-			// Handle primitive.A (bson.A is an alias for []interface{})
-			convertedArray := ConvertToBsonMArray(question[arrayField].(bson.A))
-			convertedArray = RemoveAnswer(convertedArray, answerField)
-			question[arrayField] = convertedArray
-
-		case []interface{}:
-			// Handle []interface{} directly
-			convertedArray := ConvertToBsonMArray(question[arrayField].([]interface{}))
-			convertedArray = RemoveAnswer(convertedArray, answerField)
-			question[arrayField] = convertedArray
-
-		case []bson.M:
-			// Handle []bson.M directly
-			question[arrayField] = RemoveAnswer(question[arrayField].([]bson.M), answerField)
-
-		default:
-			fmt.Printf("Unsupported array type: %T\n", v)
-		}
-
-		// Check if the field is a bson.A (array in MongoDB terms)
-
-		return question // Return the modified question
 	}
+	return question
 }
 
-func swapMatchFields(options bson.A) bson.A {
-	for i := 0; i < len(options)/2; i++ {
-		// Calculate the index of the matching pair to swap
-		j := len(options) - 1 - i
-		// Type assert each option to bson.M before accessing the fields
-		if option1, ok1 := options[i].(map[string]interface{}); ok1 {
-			if option2, ok2 := options[j].(map[string]interface{}); ok2 {
-				// Swap the match fields
-				option1["match"], option2["match"] = option2["match"], option1["match"]
-				options[i], options[j] = option2, option1
-			}
-		}
+func swapOrderItems(array bson.A) any {
+	return swap(array)
+}
 
+func swapOptions(array bson.A) bson.A {
+	return swap(array)
+}
+func swapMatchFields(array bson.A) bson.A {
+	return swap(array)
+}
+
+func swap(array bson.A) bson.A {
+	n := len(array)
+	result := make(bson.A, n)
+	for i := 0; i < n; i++ {
+		result[i] = array[n-1-i]
 	}
-	return options
+	return result
 }
 
 func ShuffleQuestionsAndAnswers(questionList []bson.M) []bson.M {

@@ -122,7 +122,7 @@ func (r *RoutesTest) deleteTest(w http.ResponseWriter, req *http.Request) {
 
 // GetAllTestOfClassByEmail retrieves all tests for a specific class by email and class ID.
 func (r *RoutesTest) getAllTestFromAuthor(w http.ResponseWriter, req *http.Request) {
-	emailID, ok := req.Context().Value("email_id").(string)
+	emailID, ok := req.Context().Value("email").(string)
 	if !ok {
 		pkg.SendError(w, "Invalid email ID", http.StatusBadRequest)
 		return

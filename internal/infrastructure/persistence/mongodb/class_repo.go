@@ -41,9 +41,9 @@ func (r *ClassMongoRepository) CreateClass(ctx context.Context, class *entity.Cl
 }
 
 // GetClassByAuthorEmail fetches all classes for a given author's email ID.
-func (r *ClassMongoRepository) GetClassByAuthorEmail(ctx context.Context, email_id string) ([]any, error) {
+func (r *ClassMongoRepository) GetClassByAuthorEmail(ctx context.Context, email string) ([]any, error) {
 	// Define a filter based on email_id
-	filter := bson.M{"email_id": email_id}
+	filter := bson.M{"author_mail": email}
 
 	// Query the database to retrieve all matching documents
 	results, err := r.CollRepo.GetAll(ctx, filter)
@@ -53,6 +53,17 @@ func (r *ClassMongoRepository) GetClassByAuthorEmail(ctx context.Context, email_
 
 	// Return the list of classes
 	return results, nil
+}
+
+func (r *ClassMongoRepository) GetAllClassByEmail(ctx context.Context, email string) ([]any, error) {
+	filter := bson.M{"students_accept": email}
+	projection := bson.M{"test_id": 1, "class_name": 1, "author_mail": 1, "tags": 1, "_id": 1}
+	classes, err := r.CollRepo.GetWithProjection(ctx, filter, projection)
+	if err != nil {
+		return []any{}, fmt.Errorf("failed to get classes by email: %w", err)
+	}
+
+	return classes, nil
 }
 
 // UpdateClass implements repository.ClassRepository.UpdateClass
@@ -76,16 +87,6 @@ func (r *ClassMongoRepository) DeleteClass(ctx context.Context, emailID string, 
 	return nil
 }
 
-func (r *ClassMongoRepository) GetAllClassByEmail(ctx context.Context, email string) ([]any, error) {
-	filter := bson.M{"students_accept": email}
-	projection := bson.M{"test_id": 1, "class_name": 1, "author_mail": 1, "tags": 1, "_id": 1}
-	classes, err := r.CollRepo.GetWithProjection(ctx, filter, projection)
-	if err != nil {
-		return []any{}, fmt.Errorf("failed to get classes by email: %w", err)
-	}
-
-	return classes, nil
-}
 func (r *ClassMongoRepository) JoinClass(ctx context.Context, classID primitive.ObjectID, email string) error {
 	// Tạo filter để tìm class theo _id
 	filter := bson.M{"_id": classID}
@@ -156,7 +157,7 @@ func (r *ClassMongoRepository) GetQuestionOfTest(ctx context.Context, classID, t
 			},
 		},
 	}
-	
+
 	projection := bson.M{
 		"test.$": 1, // Lấy đúng test cần tìm trong mảng
 	}

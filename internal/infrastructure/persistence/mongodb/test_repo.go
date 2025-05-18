@@ -27,7 +27,7 @@ func NewTestMongoRepository() repository.TestRepository {
 
 // GetTestesByAuthorEmail implements repository.TestRepository.GetTestesByAuthorEmail
 func (r *TestMongoRepository) GetTestsByAuthorEmail(ctx context.Context, email string) ([]any, error) {
-	filter := bson.M{"email_id": email}
+	filter := bson.M{"author_mail": email}
 
 	results, err := r.CollRepo.GetAll(ctx, filter)
 	if err != nil {
@@ -84,4 +84,3 @@ func (r *TestMongoRepository) DeleteTest(ctx context.Context, id primitive.Objec
 	}
 	return nil
 }
-

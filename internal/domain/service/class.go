@@ -12,13 +12,11 @@ import (
 
 type ClassUseCase struct {
 	repoClass repository.ClassRepository
-	repoTest  repository.TestRepository
 }
 
 func NewClassUseCase(repoClass repository.ClassRepository, repoTest repository.TestRepository) *ClassUseCase {
 	return &ClassUseCase{
 		repoClass: repoClass,
-		repoTest:  repoTest,
 	}
 }
 

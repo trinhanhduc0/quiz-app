@@ -35,12 +35,14 @@ func (rq *RoutesQuestion) GetQuestionRouter(r *Router) {
 
 func (r *RoutesQuestion) createQuestions(w http.ResponseWriter, req *http.Request) {
 	userID := req.Context().Value("email_id").(string)
+	fmt.Println("req.Body: ", req.Body)
 	var question entity.Question
-	fmt.Println(req.Body)
 	if err := json.NewDecoder(req.Body).Decode(&question); err != nil {
-		fmt.Println("err: ", err)
-		pkg.SendError(w, "Question not created", http.StatusInternalServerError)
-		return
+		// fmt.Println("question: ", question)
+
+		// fmt.Println("err: ", err)
+		// pkg.SendError(w, "Question not created", http.StatusInternalServerError)
+		// return
 	}
 	// Tạo ID mới cho các câu hỏi dựa trên loại câu hỏi
 	switch question.Type {
@@ -68,8 +70,7 @@ func (r *RoutesQuestion) createQuestions(w http.ResponseWriter, req *http.Reques
 	question.Metadata.Author = userID
 	// Gán thời gian tạo và cập nhật
 	now := time.Now()
-	question.Created_At = now
-	question.Updated_At = now
+	fmt.Println(now)
 
 	insertedQuestion, err := r.questionUseCase.CreateQuestion(context.TODO(), &question)
 
@@ -82,8 +83,8 @@ func (r *RoutesQuestion) createQuestions(w http.ResponseWriter, req *http.Reques
 }
 
 func (rq *RoutesQuestion) getAllQuestions(w http.ResponseWriter, req *http.Request) {
-	userID := req.Context().Value("email_id").(string)
-
+	email_id := req.Context().Value("email_id").(string)
+	fmt.Println(email_id)
 	// Parse limit and page from query parameters, default to 50 and 0 if not provided
 	limitParam := req.URL.Query().Get("limit")
 	pageParam := req.URL.Query().Get("page")
@@ -98,7 +99,7 @@ func (rq *RoutesQuestion) getAllQuestions(w http.ResponseWriter, req *http.Reque
 		page = 0 // Default to page 0 if not specified
 	}
 
-	questions, err := rq.questionUseCase.GetAllQuestionsByUser(context.TODO(), userID, limit, page)
+	questions, err := rq.questionUseCase.GetAllQuestionsByUser(context.TODO(), email_id, limit, page)
 	if err != nil {
 		pkg.SendError(w, "Failed to get questions", http.StatusInternalServerError)
 		return

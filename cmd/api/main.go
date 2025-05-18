@@ -24,7 +24,6 @@ func LoadConfig() bool {
 
 	// 	// Kiểm tra nếu các biến môi trường quan trọng có giá trị hay không
 	// 	if port == "" || appEnv == "" || redisURI == "" || mongoDBURI == "" || awsAccessKeyID == "" || awsSecretAccessKey == "" {
-	// 		fmt.Println(port)
 	// 		log.Fatal("One or more environment variables are not set.")
 	// 		return false
 	// 	}
@@ -43,7 +42,6 @@ func LoadConfig() bool {
 
 	// // Kiểm tra nếu các biến môi trường quan trọng có giá trị hay không
 	// if port == "" || appEnv == "" || redisURI == "" || mongoDBURI == "" || awsAccessKeyID == "" || awsSecretAccessKey == "" {
-	// 	fmt.Println(port)
 	// 	log.Fatal("One or more environment variables are not set.")
 	// 	return false
 	// }

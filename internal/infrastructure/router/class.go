@@ -92,13 +92,14 @@ func (rc routerClass) createClass(w http.ResponseWriter, req *http.Request) {
 }
 
 func (rc routerClass) getAllClass(w http.ResponseWriter, req *http.Request) {
-	emailID, _ := req.Context().Value("email_id").(string)
-
+	emailID, _ := req.Context().Value("email").(string)
+	fmt.Println(emailID)
 	classes, err := rc.classUseCase.GetAllClass(req.Context(), emailID)
 	if err != nil {
 		pkg.SendError(w, "Failed to retrieve classes", http.StatusInternalServerError)
 		return
 	}
+	fmt.Println("LOG GET CLASS: ", classes)
 
 	pkg.SendResponse(w, http.StatusOK, classes)
 }

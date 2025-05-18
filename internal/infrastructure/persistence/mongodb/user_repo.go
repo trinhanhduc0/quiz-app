@@ -18,7 +18,7 @@ type UserMongoRepository struct {
 
 // NewUserMongoRepository tạo một instance mới của UserMongoRepository
 func NewUserMongoRepository() repository.UserRepository {
-	collRepo := NewCollRepository("dbapp", "users")
+	collRepo := NewCollRepository("userdb", "users")
 	return &UserMongoRepository{
 		CollRepo: collRepo,
 	}

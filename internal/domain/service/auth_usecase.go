@@ -22,7 +22,6 @@ func NewAuthUseCase(authService *AuthService, redisUseCase RedisUseCase) *AuthUs
 func (uc *AuthUseCase) Authenticate(ctx context.Context, tokenString string) (entity.AuthClaims, error) {
 	// Validate JWT
 	token, err := uc.authService.ValidateJWT(tokenString)
-	fmt.Println(token)
 	if err != nil || !token.Valid {
 		fmt.Println(err)
 		return entity.AuthClaims{}, errors.New("invalid token")
@@ -40,6 +39,9 @@ func (uc *AuthUseCase) Authenticate(ctx context.Context, tokenString string) (en
 	if err != nil || redisToken != tokenString {
 		return entity.AuthClaims{}, errors.New("session expired or user logged in elsewhere")
 	}
+
+	// ***** Log the user in *****
+	fmt.Println(claims["email"])
 
 	return entity.AuthClaims{
 		EmailID: claims["email_id"].(string),
